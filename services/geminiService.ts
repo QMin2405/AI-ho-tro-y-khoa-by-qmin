@@ -2,11 +2,13 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuizDifficulty, type StudyPack, type MCQ } from '../types';
 import { useUIStore } from "../store/useUIStore";
 
-if (!process.env.API_KEY) {
-    console.warn("API_KEY environment variable not set. Using a mock service.");
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!apiKey) {
+  throw new Error("VITE_GEMINI_API_KEY is not set in the environment variables.");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+const ai = new GoogleGenAI(apiKey);
 
 const studyPackSchema = {
     type: Type.OBJECT,
