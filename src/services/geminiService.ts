@@ -2,11 +2,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { QuizDifficulty, type StudyPack, type MCQ } from '../types';
 import { useUIStore } from "../store/useUIStore";
 
-if (!process.env.API_KEY) {
+// Vite exposes env variables via import.meta.env
+const apiKey = process.env.API_KEY;
+
+if (!apiKey) {
     console.warn("API_KEY environment variable not set. Using a mock service.");
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+const ai = new GoogleGenAI({ apiKey: apiKey! });
 
 const studyPackSchema = {
     type: Type.OBJECT,
@@ -126,7 +129,7 @@ const createMockStudyPack = async (): Promise<Partial<StudyPack>> => {
 };
 
 export const createStudyPack = async (source: { text?: string; file?: { data: string, mimeType: string } }): Promise<Partial<StudyPack>> => {
-    if (!process.env.API_KEY) {
+    if (!apiKey) {
         return createMockStudyPack();
     }
     
@@ -219,7 +222,7 @@ export const createStudyPack = async (source: { text?: string; file?: { data: st
 };
 
 export const askTutor = async (context: string, userQuestion: string, questionContext?: string): Promise<string> => {
-     if (!process.env.API_KEY) {
+     if (!apiKey) {
         await new Promise(res => setTimeout(res, 800));
         return `### Đây là câu trả lời mẫu
 Phản hồi mẫu: Dựa trên bối cảnh của bài học, câu hỏi của bạn về **"${userQuestion}"** có thể được trả lời như sau:
@@ -286,7 +289,7 @@ const newQuestionsSchema = {
 };
 
 export const generateMoreQuestions = async (context: string, existingQuestions: MCQ[]): Promise<Omit<MCQ, 'uniqueId'>[]> => {
-    if (!process.env.API_KEY) {
+    if (!apiKey) {
         await new Promise(res => setTimeout(res, 1000));
         return [
             { question: "Đây là câu hỏi mới 1?", options: ["A", "B", "C"], correctAnswers: ["A"], type: 'single-choice', explanation: "Giải thích cho câu hỏi mới 1.", difficulty: QuizDifficulty.EASY },
