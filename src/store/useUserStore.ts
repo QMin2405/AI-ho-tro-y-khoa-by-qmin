@@ -27,7 +27,7 @@ const initialUserData: UserData = {
 };
 
 // Define the state shape
-interface UserState extends UserData {
+export interface UserState extends UserData {
     isLoggedIn: boolean;
     isGenerating: boolean;
     tutorState: 'closed' | 'open' | 'minimized' | 'maximized';
@@ -37,7 +37,7 @@ interface UserState extends UserData {
 }
 
 // Define the actions
-interface UserActions {
+export interface UserActions {
     setUserData: (data: UserData) => void;
     importUserData: (file: File) => void;
     logout: () => void;

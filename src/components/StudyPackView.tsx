@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import * as Types from '../types';
-import { StudyPack, LearningMode, SummaryContent, QuizDifficulty, ChatMessage, QuizSession, SubmittedAnswer } from '../types';
+import { StudyPack, LearningMode, SummaryContent, QuizSession } from '../types';
 import { useUserStore } from '../store/useUserStore';
-import { XP_ACTIONS, PACK_COLORS } from '../constants';
+import { PACK_COLORS } from '../constants';
 import { processInlineFormatting, markdownToHtml } from '../utils/markdown';
 import { 
     ArrowLeftIcon, BookOpenIcon, ClipboardListIcon, PencilIcon, AcademicCapIcon, FireIcon, CheckCircleIcon, XCircleIcon, ChatAlt2Icon, 
@@ -109,7 +109,6 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
         }
     ), [pack.quizSession, pack.quiz]);
 
-    const [viewMode, setViewMode] = useState<'all' | 'incorrect'>('all');
     const [showResults, setShowResults] = useState(false);
     const [isReviewing, setIsReviewing] = useState(false);
     const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
@@ -192,7 +191,6 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
             comboCount: 0,
         };
         updateStudyPack({ ...pack, quizSession: newSession });
-        setViewMode('incorrect');
         setShowResults(false);
         setIsReviewing(false);
     };
@@ -207,7 +205,6 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
             activeQuestionIds: pack.quiz.map(q => q.uniqueId),
         };
         updateStudyPack({ ...pack, quizSession: newSession });
-        setViewMode('all');
         setShowResults(false);
         setIsReviewing(false);
     };

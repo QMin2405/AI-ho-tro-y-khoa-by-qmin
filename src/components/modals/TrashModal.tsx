@@ -1,4 +1,3 @@
-import React from 'react';
 import { StudyPack, Folder } from '../../types';
 import { useUserStore } from '../../store/useUserStore';
 import { XIcon, TrashIcon, ArrowUturnLeftIcon, BookOpenIcon, FolderIcon, ICON_MAP } from '../icons';

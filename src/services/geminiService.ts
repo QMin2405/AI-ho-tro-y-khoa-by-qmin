@@ -200,7 +200,10 @@ export const createStudyPack = async (source: { text?: string; file?: { data: st
             },
         });
 
-        const jsonString = response.text.trim();
+        const jsonString = response.text?.trim() ?? '';
+        if (!jsonString) {
+            throw new Error("Received empty response from Gemini API.");
+        }
         const generatedPack = JSON.parse(jsonString);
         
         // Additional validation to prevent malformed data from reaching the UI
@@ -256,7 +259,7 @@ Phản hồi mẫu: Dựa trên bối cảnh của bài học, câu hỏi của 
             contents: prompt,
         });
 
-        return response.text;
+        return response.text ?? "Xin lỗi, tôi không thể tạo phản hồi vào lúc này.";
     } catch (error) {
         console.error("Error asking tutor:", error);
         return "Xin lỗi, tôi đã gặp lỗi khi cố gắng trả lời câu hỏi của bạn.";
@@ -325,7 +328,10 @@ export const generateMoreQuestions = async (context: string, existingQuestions: 
             },
         });
 
-        const jsonString = response.text.trim();
+        const jsonString = response.text?.trim() ?? '';
+        if (!jsonString) {
+            throw new Error("Received empty response from Gemini API when generating more questions.");
+        }
         const result = JSON.parse(jsonString);
 
         const newQuestions = (result.new_questions || []) as Omit<MCQ, 'uniqueId'>[];

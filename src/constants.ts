@@ -21,7 +21,6 @@ import {
     LightBulbIcon,
     FingerPrintIcon,
     UsersIcon,
-    ClockIcon,
     StarIcon,
     BoltIcon,
     MoonIcon,

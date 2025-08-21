@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useUserStore } from '../../store/useUserStore';
 import { BadgeId } from '../../types';
 import { BADGES_DATA } from '../../constants';

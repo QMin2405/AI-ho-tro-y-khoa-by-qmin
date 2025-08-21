@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 export const ToastNotification = ({ message, onDismiss }: { message: string; onDismiss: () => void; }) => {
     useEffect(() => {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useUserStore } from './store/useUserStore';
+import { useState, useEffect, useCallback } from 'react';
+import { useUserStore, UserState, UserActions } from './store/useUserStore';
 import { useUIStore } from './store/useUIStore';
 
 import { AppHeader } from './components/AppHeader';
@@ -29,8 +29,8 @@ export const App = () => {
     const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
 
     // Get state and actions from stores
-    const checkDailyStreak = useUserStore(state => state.checkDailyStreak);
-    const isLoggedIn = useUserStore(state => state.isLoggedIn);
+    const checkDailyStreak = useUserStore((state: UserState & UserActions) => state.checkDailyStreak);
+    const isLoggedIn = useUserStore((state: UserState) => state.isLoggedIn);
     
     // UI store for global components like toasts and confirm modals
     const toast = useUIStore(state => state.toast);
@@ -57,7 +57,13 @@ export const App = () => {
     // Effect to check badges whenever user data changes
     useEffect(() => {
         useUserStore.getState().checkAndAwardBadges();
-    }, [useUserStore(state => state.unlockedBadges.length), useUserStore(state => state.xp), useUserStore(state => state.studyPacks.length), useUserStore(state => state.questionsAskedCount), useUserStore(state => state.totalCorrectAnswers)]);
+    }, [
+        useUserStore((state: UserState) => state.unlockedBadges.length), 
+        useUserStore((state: UserState) => state.xp), 
+        useUserStore((state: UserState) => state.studyPacks.length), 
+        useUserStore((state: UserState) => state.questionsAskedCount), 
+        useUserStore((state: UserState) => state.totalCorrectAnswers)
+    ]);
 
 
     // --- Handlers ---

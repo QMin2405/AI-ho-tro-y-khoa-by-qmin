@@ -1,4 +1,3 @@
-import React from 'react';
 import { useUserStore } from '../../store/useUserStore';
 import { STREAK_MILESTONES } from '../../constants';
 import { FireIcon, XIcon } from '../icons';
