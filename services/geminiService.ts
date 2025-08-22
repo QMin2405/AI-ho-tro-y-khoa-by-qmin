@@ -4,7 +4,8 @@ import { useUIStore } from "../store/useUIStore";
 
 // --- LOGIC MỚI: Định nghĩa URL của Backend ---
 // const BACKEND_URL = 'http://localhost:3001'; // Dùng URL này khi phát triển ở máy
-const BACKEND_URL = 'https://medical-ai-backend-anja.onrender.com/'; // Dùng URL này sau khi triển khai lên Render
+const BACKEND_URL = 'https://medical-ai-backend-anja.onrender.com';
+const fullUrl = `${BACKEND_URL}/api/ask-tutor`;
 
 // Hàm createStudyPack đã được cập nhật để gọi đến backend
 export const createStudyPack = async (source: { text?: string; file?: { data: string, mimeType: string } }): Promise<Partial<StudyPack>> => {
