@@ -400,7 +400,7 @@ export const useUserStore = create<UserState & UserActions>()(
                 const originalQuestionsCount = pack.originalQuizCount || pack.quiz.length;
                 if (session.activeQuestionIds.length >= originalQuestionsCount) get().handleActivity();
 
-                const score = Object.values(session.submittedAnswers).filter(a => a.isCorrect).length;
+                const score = Object.values(session.submittedAnswers).filter((a: SubmittedAnswer) => a.isCorrect).length;
                 const isPerfect = score === session.activeQuestionIds.length && session.activeQuestionIds.length > 0;
                 
                 if (isPerfect) {
