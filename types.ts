@@ -1,5 +1,6 @@
 
 
+
 import type { ReactElement } from 'react';
 
 export enum LearningMode {
@@ -153,4 +154,9 @@ export interface UserData {
     generatedQuestionCount: number;
     totalCorrectAnswers: number;
     perfectQuizCompletions: number;
+    tutorXpGainsToday?: { 
+        count: number;
+        date: string; 
+        limitNotified?: boolean;
+    };
 }

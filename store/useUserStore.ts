@@ -24,6 +24,7 @@ const initialUserData: UserData = {
     generatedQuestionCount: 0,
     totalCorrectAnswers: 0,
     perfectQuizCompletions: 0,
+    tutorXpGainsToday: { count: 0, date: new Date(0).toISOString().split('T')[0], limitNotified: false },
 };
 
 // Define the state shape
@@ -51,7 +52,7 @@ interface UserActions {
     recordLearningModeUsage: (packId: string, mode: LearningMode) => void;
     handleQuizAnswer: (packId: string, questionId: string, selectedAnswers: string[]) => void;
     handleQuizComplete: (pack: StudyPack, session: QuizSession) => void;
-    generateMoreQuestions: (packId: string) => Promise<void>;
+    generateMoreQuestions: (packId: string, customInstruction?: string) => Promise<void>;
     // Tutor Actions
     openTutor: (greeting?: string) => void;
     closeTutor: () => void;
@@ -204,9 +205,9 @@ export const useUserStore = create<UserState & UserActions>()(
                     }
                     useUIStore.getState().showToast(`🔥 Chuỗi ${newStreak} ngày!`);
                 } else if (diffDays > 1) {
-                    // Reset streak to 0 as per user request
-                    set({ streak: 0, lastActivityDate: new Date().toISOString() });
-                    useUIStore.getState().showToast(`Chuỗi học tập đã được reset.`);
+                    // Reset streak to 1, not 0, when a new activity starts after a gap
+                    set({ streak: 1, lastActivityDate: new Date().toISOString() });
+                    useUIStore.getState().showToast(`Chào mừng trở lại! Bắt đầu chuỗi mới!`);
                 } else { 
                     // Handle first-ever activity or same-day activity
                     const isFirstEver = get().lastActivityDate === new Date(0).toISOString();
@@ -229,20 +230,11 @@ export const useUserStore = create<UserState & UserActions>()(
                 set({ isGenerating: true });
                 const { addXp, handleActivity } = get();
                 try {
-                    let serviceSource: { text?: string; file?: { data: string, mimeType: string } } = {};
-                    if (source.file) {
-                        const base64Data = await new Promise<string>((resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.readAsDataURL(source.file!);
-                            reader.onload = () => resolve((reader.result as string).split(',')[1]);
-                            reader.onerror = error => reject(error);
-                        });
-                        serviceSource.file = { data: base64Data, mimeType: source.file.type };
-                        if (source.text?.trim()) serviceSource.text = source.text.trim();
-                    } else { serviceSource.text = source.text?.trim(); }
+                    // Đơn giản hóa: Truyền thẳng đối tượng source (với File) đến service.
+                    // Không cần chuyển đổi sang base64 ở đây nữa.
+                    const generatedContent = await createStudyPackService(source);
                     
                     const packId = `pack_${Date.now()}`;
-                    const generatedContent = await createStudyPackService(serviceSource);
 
                     const randomColor = PACK_COLORS[Math.floor(Math.random() * PACK_COLORS.length)].key;
                     const availableIcons = Object.keys(ICON_MAP).filter(key => key !== 'default');
@@ -400,7 +392,7 @@ export const useUserStore = create<UserState & UserActions>()(
                 const originalQuestionsCount = pack.originalQuizCount || pack.quiz.length;
                 if (session.activeQuestionIds.length >= originalQuestionsCount) get().handleActivity();
 
-                const score = Object.values(session.submittedAnswers).filter((a: SubmittedAnswer) => a.isCorrect).length;
+                const score = Object.values(session.submittedAnswers).filter((a: unknown) => (a as SubmittedAnswer).isCorrect).length;
                 const isPerfect = score === session.activeQuestionIds.length && session.activeQuestionIds.length > 0;
                 
                 if (isPerfect) {
@@ -423,19 +415,17 @@ export const useUserStore = create<UserState & UserActions>()(
                 get().checkAndAwardBadges();
             },
 
-            generateMoreQuestions: async (packId) => {
+            generateMoreQuestions: async (packId, customInstruction) => {
                 const pack = get().studyPacks.find(p => p.id === packId);
                 if (!pack) return;
                 set({ isGenerating: true });
                 try {
                     const lessonContext = pack.lesson.map(l => l.content).join('\n');
-                    const newQuestions = await generateMoreQuestionsService(lessonContext, pack.quiz);
+                    const newQuestions = await generateMoreQuestionsService(lessonContext, pack.quiz, customInstruction);
                     const newMCQs = newQuestions.map((q, i) => ({ ...q, uniqueId: `${packId}_gen_${Date.now()}_${i}` }));
                     
                     const allQuestions = [...pack.quiz, ...newMCQs];
                     
-                    // Atomically reset the session when new questions are added.
-                    // This brings the user back to the start of the quiz with the new questions included.
                     const newSession: QuizSession = {
                         currentQuestionIndex: 0,
                         comboCount: 0,
@@ -472,7 +462,24 @@ export const useUserStore = create<UserState & UserActions>()(
                 const { addXp, handleActivity, tutorContext } = get();
                 set(prev => ({ tutorMessages: [...prev.tutorMessages, { sender: 'user', text: message }], isTutorLoading: true }));
                 set(prev => ({ questionsAskedCount: prev.questionsAskedCount + 1 }));
-                addXp(XP_ACTIONS.ASK_AI);
+
+                // --- XP Limit Logic ---
+                const todayStr = new Date().toISOString().split('T')[0];
+                const tutorGains = get().tutorXpGainsToday;
+
+                if (!tutorGains || tutorGains.date !== todayStr) {
+                    set({ tutorXpGainsToday: { count: 1, date: todayStr, limitNotified: false } });
+                    addXp(XP_ACTIONS.ASK_AI);
+                } else if (tutorGains.count < 5) {
+                    set(prev => ({ tutorXpGainsToday: { ...prev.tutorXpGainsToday!, count: prev.tutorXpGainsToday!.count + 1 } }));
+                    addXp(XP_ACTIONS.ASK_AI);
+                } else {
+                    if (!tutorGains.limitNotified) {
+                        useUIStore.getState().showToast("Bạn đã đạt giới hạn XP từ Gia sư AI cho hôm nay.");
+                        set(prev => ({ tutorXpGainsToday: { ...prev.tutorXpGainsToday!, limitNotified: true } }));
+                    }
+                }
+
                 handleActivity();
                 
                 try {
