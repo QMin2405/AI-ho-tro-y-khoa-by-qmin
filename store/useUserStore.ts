@@ -7,8 +7,10 @@ import { useUIStore } from './useUIStore';
 import { exportUserData } from '../utils/helpers';
 import { ICON_MAP } from '../components/icons';
 
+
 const LOCAL_STORAGE_KEY = 'smartMedTutorUserData';
 const DEFAULT_USER_NAME = "Học viên Y khoa";
+
 
 const initialUserData: UserData = {
     name: DEFAULT_USER_NAME,
@@ -27,6 +29,7 @@ const initialUserData: UserData = {
     tutorXpGainsToday: { count: 0, date: new Date(0).toISOString().split('T')[0], limitNotified: false },
 };
 
+
 // Define the state shape
 interface UserState extends UserData {
     isLoggedIn: boolean;
@@ -36,6 +39,7 @@ interface UserState extends UserData {
     isTutorLoading: boolean;
     tutorContext?: string;
 }
+
 
 // Define the actions
 interface UserActions {
@@ -52,7 +56,7 @@ interface UserActions {
     recordLearningModeUsage: (packId: string, mode: LearningMode) => void;
     handleQuizAnswer: (packId: string, questionId: string, selectedAnswers: string[]) => void;
     handleQuizComplete: (pack: StudyPack, session: QuizSession) => void;
-    generateMoreQuestions: (packId: string, customInstruction?: string) => Promise<void>;
+    generateMoreQuestions: (packId: string) => Promise<void>;
     // Tutor Actions
     openTutor: (greeting?: string) => void;
     closeTutor: () => void;
@@ -75,6 +79,7 @@ interface UserActions {
     permanentDeleteAll: () => void;
 }
 
+
 const getDescendantIds = (folderId: string, allFolders: Folder[], allPacks: StudyPack[]) => {
     let descendantFolderIds: string[] = [];
     const findChildren = (parentId: string) => {
@@ -91,6 +96,7 @@ const getDescendantIds = (folderId: string, allFolders: Folder[], allPacks: Stud
     return { folderIds: descendantFolderIds, packIds: packsInDescendants };
 };
 
+
 export const useUserStore = create<UserState & UserActions>()(
     persist(
         (set, get) => ({
@@ -102,7 +108,9 @@ export const useUserStore = create<UserState & UserActions>()(
             isTutorLoading: false,
             tutorContext: undefined,
 
+
             setUserData: (data) => set({ ...data, isLoggedIn: data.name !== DEFAULT_USER_NAME }),
+
 
             importUserData: (file) => {
                 const reader = new FileReader();
@@ -118,13 +126,14 @@ export const useUserStore = create<UserState & UserActions>()(
                 reader.readAsText(file);
             },
 
+
             logout: () => {
                 exportUserData(get());
                 set({ ...initialUserData, isLoggedIn: false });
                 localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear persisted storage
                 useUIStore.getState().showToast("Đã đăng xuất và sao lưu dữ liệu.");
             },
-            
+           
             changeName: (newName) => {
                 const finalName = newName.trim() === '' ? DEFAULT_USER_NAME : newName.trim();
                 set({ name: finalName });
@@ -132,7 +141,7 @@ export const useUserStore = create<UserState & UserActions>()(
                     set({ isLoggedIn: true });
                 } else { set({ isLoggedIn: false }); }
             },
-            
+           
             addXp: (amount, customMessage) => {
                 const roundedAmount = Math.round(amount);
                 if (roundedAmount > 0) {
@@ -140,11 +149,12 @@ export const useUserStore = create<UserState & UserActions>()(
                     useUIStore.getState().showToast(customMessage || `+${roundedAmount} XP!`);
                 }
             },
-            
+           
             checkAndAwardBadges: () => {
                 const state = get();
                 const newlyUnlocked: BadgeId[] = [];
                 const hasBadge = (id: BadgeId) => state.unlockedBadges.includes(id);
+
 
                 if (!hasBadge(BadgeId.FIRST_PACK) && state.studyPacks.length > 0) newlyUnlocked.push(BadgeId.FIRST_PACK);
                 if (!hasBadge(BadgeId.THE_ARCHITECT) && state.studyPacks.length >= ARCHITECT_THRESHOLD) newlyUnlocked.push(BadgeId.THE_ARCHITECT);
@@ -163,6 +173,7 @@ export const useUserStore = create<UserState & UserActions>()(
                 if (!hasBadge(BadgeId.STEEL_BRAIN) && state.totalCorrectAnswers >= STEEL_BRAIN_THRESHOLD) newlyUnlocked.push(BadgeId.STEEL_BRAIN);
                 if (!hasBadge(BadgeId.THE_CONQUEROR) && state.perfectQuizCompletions >= CONQUEROR_THRESHOLD) newlyUnlocked.push(BadgeId.THE_CONQUEROR);
 
+
                 // HOLISTIC_LEARNER
                 if (!hasBadge(BadgeId.HOLISTIC_LEARNER)) {
                     const requiredModes = [LearningMode.SUMMARY, LearningMode.QUIZ, LearningMode.FILL_IN_THE_BLANK, LearningMode.GLOSSARY];
@@ -170,32 +181,32 @@ export const useUserStore = create<UserState & UserActions>()(
                         newlyUnlocked.push(BadgeId.HOLISTIC_LEARNER);
                     }
                 }
-                
+               
                 // SUBJECT_MATTER_EXPERT
                 if (!hasBadge(BadgeId.SUBJECT_MATTER_EXPERT)) {
                     if (state.studyPacks.some(p => p.progress >= 100)) {
                         newlyUnlocked.push(BadgeId.SUBJECT_MATTER_EXPERT);
                     }
                 }
-                
+               
                 if (newlyUnlocked.length > 0) {
                     set(prev => ({ unlockedBadges: [...prev.unlockedBadges, ...newlyUnlocked] }));
                     newlyUnlocked.forEach(badgeId => useUIStore.getState().showToast(`🏆 Huy hiệu mới: ${BADGES_DATA[badgeId].name}!`));
                 }
             },
-            
+           
             checkDailyStreak: () => {
                 const today = new Date(); today.setHours(0, 0, 0, 0);
                 const lastActivity = new Date(get().lastActivityDate); lastActivity.setHours(0, 0, 0, 0);
                 const diffDays = Math.round((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
                 if (diffDays > 1 && get().lastActivityDate !== new Date(0).toISOString()) { set({ streak: 0 }); }
             },
-            
+           
             handleActivity: () => {
                 const today = new Date(); today.setHours(0, 0, 0, 0);
                 const lastActivity = new Date(get().lastActivityDate); lastActivity.setHours(0, 0, 0, 0);
                 const diffDays = Math.round((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
-                
+               
                 if (diffDays === 1) {
                     const newStreak = get().streak + 1;
                     set({ streak: newStreak, lastActivityDate: new Date().toISOString() });
@@ -205,10 +216,10 @@ export const useUserStore = create<UserState & UserActions>()(
                     }
                     useUIStore.getState().showToast(`🔥 Chuỗi ${newStreak} ngày!`);
                 } else if (diffDays > 1) {
-                    // Reset streak to 1, not 0, when a new activity starts after a gap
-                    set({ streak: 1, lastActivityDate: new Date().toISOString() });
-                    useUIStore.getState().showToast(`Chào mừng trở lại! Bắt đầu chuỗi mới!`);
-                } else { 
+                    // Reset streak to 0 as per user request
+                    set({ streak: 0, lastActivityDate: new Date().toISOString() });
+                    useUIStore.getState().showToast(`Chuỗi học tập đã được reset.`);
+                } else {
                     // Handle first-ever activity or same-day activity
                     const isFirstEver = get().lastActivityDate === new Date(0).toISOString();
                     if (isFirstEver) {
@@ -221,24 +232,37 @@ export const useUserStore = create<UserState & UserActions>()(
                     }
                 }
 
+
                 const currentHour = new Date().getHours();
                 if (currentHour >= 22 && !get().unlockedBadges.includes(BadgeId.NIGHT_OWL)) set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.NIGHT_OWL] }));
                 if (currentHour < 7 && !get().unlockedBadges.includes(BadgeId.EARLY_BIRD)) set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.EARLY_BIRD] }));
             },
 
+
             createStudyPack: async (source) => {
                 set({ isGenerating: true });
                 const { addXp, handleActivity } = get();
                 try {
-                    // Đơn giản hóa: Truyền thẳng đối tượng source (với File) đến service.
-                    // Không cần chuyển đổi sang base64 ở đây nữa.
-                    const generatedContent = await createStudyPackService(source);
-                    
+                    let serviceSource: { text?: string; file?: { data: string, mimeType: string } } = {};
+                    if (source.file) {
+                        const base64Data = await new Promise<string>((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.readAsDataURL(source.file!);
+                            reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                            reader.onerror = error => reject(error);
+                        });
+                        serviceSource.file = { data: base64Data, mimeType: source.file.type };
+                        if (source.text?.trim()) serviceSource.text = source.text.trim();
+                    } else { serviceSource.text = source.text?.trim(); }
+                   
                     const packId = `pack_${Date.now()}`;
+                    const generatedContent = await createStudyPackService(serviceSource);
+
 
                     const randomColor = PACK_COLORS[Math.floor(Math.random() * PACK_COLORS.length)].key;
                     const availableIcons = Object.keys(ICON_MAP).filter(key => key !== 'default');
                     const randomIcon = availableIcons[Math.floor(Math.random() * availableIcons.length)];
+
 
                     const newPack: StudyPack = {
                         id: packId, imageUrl: '📚', progress: 0, ...generatedContent,
@@ -260,10 +284,12 @@ export const useUserStore = create<UserState & UserActions>()(
                 } finally { set({ isGenerating: false }); }
             },
 
+
             recordLearningModeUsage: (packId, mode) => {
                 set(state => {
                     const pack = state.studyPacks.find(p => p.id === packId);
                     if (!pack) return state;
+
 
                     const currentModes = pack.usedLearningModes || [];
                     if (!currentModes.includes(mode)) {
@@ -275,19 +301,20 @@ export const useUserStore = create<UserState & UserActions>()(
                 get().checkAndAwardBadges();
             },
 
+
             updateStudyPack: (updatedPack) => {
                 const oldPack = get().studyPacks.find(p => p.id === updatedPack.id);
-            
+           
                 if (oldPack) {
                     const hasBeenTrulyCustomized = (oldPack.title !== updatedPack.title || oldPack.color !== updatedPack.color || oldPack.icon !== updatedPack.icon);
-            
+           
                     if (hasBeenTrulyCustomized) {
                         // Award XP only for the first customization of this specific pack
                         if (!oldPack.hasBeenCustomized) {
                             get().addXp(XP_ACTIONS.PERSONAL_TOUCH);
-                            updatedPack.hasBeenCustomized = true; 
+                            updatedPack.hasBeenCustomized = true;
                         }
-            
+           
                         // Award badge for the very first customization across any pack
                         if (!get().unlockedBadges.includes(BadgeId.PERSONAL_TOUCH)) {
                             set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.PERSONAL_TOUCH] }));
@@ -295,34 +322,34 @@ export const useUserStore = create<UserState & UserActions>()(
                         }
                     }
                 }
-                
-                set(state => ({ 
-                    studyPacks: state.studyPacks.map(p => p.id === updatedPack.id ? updatedPack : p) 
+               
+                set(state => ({
+                    studyPacks: state.studyPacks.map(p => p.id === updatedPack.id ? updatedPack : p)
                 }));
             },
-            
+           
             handleQuizAnswer: (packId, questionId, selectedAnswers) => {
                 const state = get();
                 const pack = state.studyPacks.find(p => p.id === packId);
                 const question = pack?.quiz.find(q => q.uniqueId === questionId);
-        
+       
                 if (!pack || !question) {
                     console.error("Pack or question not found in handleQuizAnswer");
                     return;
                 }
-        
+       
                 const session = pack.quizSession || {
                     currentQuestionIndex: 0, comboCount: 0, submittedAnswers: {},
                     incorrectlyAnsweredIds: [], activeQuestionIds: pack.quiz.map(q => q.uniqueId),
                 };
-        
+       
                 const isCorrect = question.correctAnswers.length === selectedAnswers.length &&
                                   question.correctAnswers.every(ans => selectedAnswers.includes(ans));
                 const newComboCount = isCorrect ? session.comboCount + 1 : 0;
-                
+               
                 let xpGained = 0;
                 let toastMessage: string | null = null;
-                
+               
                 if (isCorrect && !state.correctlyAnsweredQuizIds.includes(questionId)) {
                     let baseAmount = XP_ACTIONS.QUIZ_CORRECT_ANSWER + (QUIZ_DIFFICULTY_POINTS[question.difficulty as QuizDifficulty] || 0);
                     if (newComboCount > 1) {
@@ -330,12 +357,12 @@ export const useUserStore = create<UserState & UserActions>()(
                     }
                     const streakMultiplier = state.streak > 1 ? 1 + (state.streak - 1) * 0.2 : 1;
                     xpGained = Math.round(baseAmount * streakMultiplier);
-        
+       
                     toastMessage = streakMultiplier > 1
                         ? `+${xpGained} XP! (Thưởng chuỗi x${streakMultiplier.toFixed(1)})`
                         : `+${xpGained} XP!`;
                 }
-        
+       
                 set(prev => {
                     const newSubmittedAnswers: Record<string, SubmittedAnswer> = {
                         ...session.submittedAnswers,
@@ -344,33 +371,33 @@ export const useUserStore = create<UserState & UserActions>()(
                     const newIncorrectlyAnsweredIds = !isCorrect && !session.incorrectlyAnsweredIds.includes(questionId)
                         ? [...session.incorrectlyAnsweredIds, questionId]
                         : session.incorrectlyAnsweredIds.filter(id => !(id === questionId && isCorrect));
-                    
+                   
                     const newSession: QuizSession = {
                         ...session,
                         comboCount: newComboCount,
                         submittedAnswers: newSubmittedAnswers,
                         incorrectlyAnsweredIds: newIncorrectlyAnsweredIds,
                     };
-        
+       
                     const newCorrectlyAnsweredIds = (isCorrect && !prev.correctlyAnsweredQuizIds.includes(questionId))
                         ? [...prev.correctlyAnsweredQuizIds, questionId]
                         : prev.correctlyAnsweredQuizIds;
-                    
+                   
                     const newTotalCorrectAnswers = (isCorrect && !prev.correctlyAnsweredQuizIds.includes(questionId))
                         ? prev.totalCorrectAnswers + 1
                         : prev.totalCorrectAnswers;
-        
+       
                     const totalCorrectForPack = newCorrectlyAnsweredIds.filter(id => id.startsWith(packId)).length;
                     const totalQuestions = pack.originalQuizCount || pack.quiz.length;
                     const newProgress = totalQuestions > 0 ? Math.min(100, Math.round((totalCorrectForPack / totalQuestions) * 100)) : 0;
-        
+       
                     const updatedPacks = prev.studyPacks.map(p => {
                         if (p.id === packId) {
                             return { ...p, quizSession: newSession, progress: newProgress };
                         }
                         return p;
                     });
-                    
+                   
                     return {
                         xp: prev.xp + xpGained,
                         correctlyAnsweredQuizIds: newCorrectlyAnsweredIds,
@@ -378,25 +405,27 @@ export const useUserStore = create<UserState & UserActions>()(
                         studyPacks: updatedPacks
                     };
                 });
-        
+       
                 if (toastMessage) {
                     useUIStore.getState().showToast(toastMessage);
                 }
-                
+               
                 if (isCorrect && newComboCount >= HOT_STREAK_THRESHOLD && !get().unlockedBadges.includes(BadgeId.HOT_STREAK)) {
                     set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.HOT_STREAK] }));
                 }
             },
-            
+           
             handleQuizComplete: (pack, session) => {
                 const originalQuestionsCount = pack.originalQuizCount || pack.quiz.length;
                 if (session.activeQuestionIds.length >= originalQuestionsCount) get().handleActivity();
 
-                const score = Object.values(session.submittedAnswers).filter((a: unknown) => (a as SubmittedAnswer).isCorrect).length;
+
+                const score = Object.values(session.submittedAnswers).filter((a: SubmittedAnswer) => a.isCorrect).length;
                 const isPerfect = score === session.activeQuestionIds.length && session.activeQuestionIds.length > 0;
-                
+               
                 if (isPerfect) {
                     set(prev => ({ perfectQuizCompletions: prev.perfectQuizCompletions + 1 }));
+
 
                     if (!get().unlockedBadges.includes(BadgeId.FLAWLESS_VICTORY)) {
                         const questionsInSession = pack.quiz.filter(q => session.activeQuestionIds.includes(q.uniqueId));
@@ -407,7 +436,7 @@ export const useUserStore = create<UserState & UserActions>()(
                         }
                     }
                 }
-                
+               
                 if (!get().unlockedBadges.includes(BadgeId.FIRST_QUIZ)) {
                     set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.FIRST_QUIZ] }));
                     useUIStore.getState().showToast(`🏆 Huy hiệu mới: ${BADGES_DATA[BadgeId.FIRST_QUIZ].name}!`);
@@ -415,17 +444,20 @@ export const useUserStore = create<UserState & UserActions>()(
                 get().checkAndAwardBadges();
             },
 
-            generateMoreQuestions: async (packId, customInstruction) => {
+
+            generateMoreQuestions: async (packId) => {
                 const pack = get().studyPacks.find(p => p.id === packId);
                 if (!pack) return;
                 set({ isGenerating: true });
                 try {
                     const lessonContext = pack.lesson.map(l => l.content).join('\n');
-                    const newQuestions = await generateMoreQuestionsService(lessonContext, pack.quiz, customInstruction);
+                    const newQuestions = await generateMoreQuestionsService(lessonContext, pack.quiz);
                     const newMCQs = newQuestions.map((q, i) => ({ ...q, uniqueId: `${packId}_gen_${Date.now()}_${i}` }));
-                    
+                   
                     const allQuestions = [...pack.quiz, ...newMCQs];
-                    
+                   
+                    // Atomically reset the session when new questions are added.
+                    // This brings the user back to the start of the quiz with the new questions included.
                     const newSession: QuizSession = {
                         currentQuestionIndex: 0,
                         comboCount: 0,
@@ -433,19 +465,19 @@ export const useUserStore = create<UserState & UserActions>()(
                         incorrectlyAnsweredIds: [],
                         activeQuestionIds: allQuestions.map(q => q.uniqueId),
                     };
-                    
+                   
                     const updatedPack = { ...pack, quiz: allQuestions, quizSession: newSession };
-                    
+                   
                     get().updateStudyPack(updatedPack);
                     set(prev => ({ generatedQuestionCount: prev.generatedQuestionCount + newMCQs.length }));
                     useUIStore.getState().showToast(`Đã tạo thêm ${newMCQs.length} câu hỏi mới!`);
-                } catch (error) { 
+                } catch (error) {
                     useUIStore.getState().showToast('Không thể tạo thêm câu hỏi.');
-                } finally { 
+                } finally {
                     set({ isGenerating: false });
                 }
             },
-            
+           
             // Tutor
             openTutor: (greeting) => {
                 if (get().tutorState === 'closed') {
@@ -463,25 +495,33 @@ export const useUserStore = create<UserState & UserActions>()(
                 set(prev => ({ tutorMessages: [...prev.tutorMessages, { sender: 'user', text: message }], isTutorLoading: true }));
                 set(prev => ({ questionsAskedCount: prev.questionsAskedCount + 1 }));
 
+
                 // --- XP Limit Logic ---
                 const todayStr = new Date().toISOString().split('T')[0];
                 const tutorGains = get().tutorXpGainsToday;
 
+
                 if (!tutorGains || tutorGains.date !== todayStr) {
+                    // First message of a new day, reset counter and award XP
                     set({ tutorXpGainsToday: { count: 1, date: todayStr, limitNotified: false } });
                     addXp(XP_ACTIONS.ASK_AI);
                 } else if (tutorGains.count < 5) {
+                    // Not the first, but under the limit, increment and award XP
                     set(prev => ({ tutorXpGainsToday: { ...prev.tutorXpGainsToday!, count: prev.tutorXpGainsToday!.count + 1 } }));
                     addXp(XP_ACTIONS.ASK_AI);
                 } else {
+                    // Limit reached. Only show toast if it hasn't been shown today.
                     if (!tutorGains.limitNotified) {
                         useUIStore.getState().showToast("Bạn đã đạt giới hạn XP từ Gia sư AI cho hôm nay.");
+                        // Mark that the notification has been shown for today.
                         set(prev => ({ tutorXpGainsToday: { ...prev.tutorXpGainsToday!, limitNotified: true } }));
                     }
                 }
+                // --- End XP Logic ---
+
 
                 handleActivity();
-                
+               
                 try {
                     const activePack = get().studyPacks.find(p => p.id === get().tutorContext?.split('_pack_')[0]);
                     const lessonContext = activePack ? activePack.lesson.map(l => l.content).join('\n') : "Không có bối cảnh bài học cụ thể.";
@@ -495,12 +535,12 @@ export const useUserStore = create<UserState & UserActions>()(
                 get().openTutor(greeting);
             },
             clearTutorContext: () => set({ tutorContext: undefined }),
-            
+           
             // File Management
             createFolder: (parentId) => set(state => ({ folders: [...state.folders, { id: `folder_${Date.now()}`, name: 'Thư mục không tên', parentId }]})),
             updateFolder: (id, newName, newIcon) => set(state => ({ folders: state.folders.map(f => f.id === id ? { ...f, name: newName, icon: newIcon } : f) })),
             movePacksToFolder: (packIds, folderId) => set(state => ({ studyPacks: state.studyPacks.map(p => packIds.includes(p.id) ? { ...p, folderId } : p) })),
-            
+           
             softDeleteItem: (id, type) => {
                 if (type === 'pack') {
                     set(prev => ({ studyPacks: prev.studyPacks.map(p => p.id === id ? { ...p, isDeleted: true } : p) }));
@@ -521,6 +561,7 @@ export const useUserStore = create<UserState & UserActions>()(
                 isDestructive: true,
             }),
 
+
             restoreItem: (id, type) => {
                 if (type === 'pack') {
                     set(prev => ({ studyPacks: prev.studyPacks.map(p => p.id === id ? { ...p, isDeleted: false } : p) }));
@@ -535,6 +576,7 @@ export const useUserStore = create<UserState & UserActions>()(
                     }));
                 }
             },
+
 
             permanentDeleteItem: (id, type) => {
                 if (type === 'pack') {
@@ -556,11 +598,12 @@ export const useUserStore = create<UserState & UserActions>()(
                 isDestructive: true,
             }),
 
+
             restoreAll: () => set(prev => ({
                 studyPacks: prev.studyPacks.map(p => ({ ...p, isDeleted: false })),
                 folders: prev.folders.map(f => ({ ...f, isDeleted: false })),
             })),
-            
+           
             permanentDeleteAll: () => set(prev => ({
                 studyPacks: prev.studyPacks.filter(p => !p.isDeleted),
                 folders: prev.folders.filter(f => !f.isDeleted),
