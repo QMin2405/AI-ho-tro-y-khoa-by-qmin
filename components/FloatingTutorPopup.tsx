@@ -11,8 +11,8 @@ const MemoizedChatMessage = React.memo(({ msg }: { msg: ChatMessage }) => {
     return (
         <div className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
              {msg.sender === 'ai' && <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center flex-shrink-0"><CpuChipIcon className="w-5 h-5 text-brand-primary"/></div>}
-            <div className={`p-3 rounded-xl max-w-xs ${msg.sender === 'user' ? 'bg-brand-primary' : 'bg-slate-100 dark:bg-gray-700'}`}>
-               <div className={`prose prose-sm max-w-none ${msg.sender === 'user' ? 'prose-invert' : 'dark:prose-invert'}`} dangerouslySetInnerHTML={{ __html: messageHtml }}></div>
+            <div className={`p-3 rounded-xl max-w-xs ${msg.sender === 'user' ? 'bg-slate-200 dark:bg-gray-600' : 'bg-slate-100 dark:bg-gray-700'}`}>
+               <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: messageHtml }}></div>
             </div>
         </div>
     );
