@@ -7,10 +7,8 @@ import { useUIStore } from './useUIStore';
 import { exportUserData } from '../utils/helpers';
 import { ICON_MAP } from '../components/icons';
 
-
 const LOCAL_STORAGE_KEY = 'smartMedTutorUserData';
 const DEFAULT_USER_NAME = "Học viên Y khoa";
-
 
 const initialUserData: UserData = {
     name: DEFAULT_USER_NAME,
@@ -29,7 +27,6 @@ const initialUserData: UserData = {
     tutorXpGainsToday: { count: 0, date: new Date(0).toISOString().split('T')[0], limitNotified: false },
 };
 
-
 // Define the state shape
 interface UserState extends UserData {
     isLoggedIn: boolean;
@@ -39,7 +36,6 @@ interface UserState extends UserData {
     isTutorLoading: boolean;
     tutorContext?: string;
 }
-
 
 // Define the actions
 interface UserActions {
@@ -54,9 +50,14 @@ interface UserActions {
     createStudyPack: (source: { text?: string; file?: File | null }) => Promise<boolean>;
     updateStudyPack: (updatedPack: StudyPack) => void;
     recordLearningModeUsage: (packId: string, mode: LearningMode) => void;
+    // Standard Quiz Actions
     handleQuizAnswer: (packId: string, questionId: string, selectedAnswers: string[]) => void;
     handleQuizComplete: (pack: StudyPack, session: QuizSession) => void;
-    generateMoreQuestions: (packId: string) => Promise<void>;
+    // M2 Staatexam Quiz Actions
+    handleM2StaatexamQuizAnswer: (packId: string, questionId: string, selectedAnswers: string[]) => void;
+    handleM2StaatexamQuizComplete: (pack: StudyPack, session: QuizSession) => void;
+
+    generateMoreQuestions: (packId: string, isM2Style: boolean) => Promise<void>;
     // Tutor Actions
     openTutor: (greeting?: string) => void;
     closeTutor: () => void;
@@ -79,20 +80,19 @@ interface UserActions {
     permanentDeleteAll: () => void;
 }
 
-
 const getDescendantIds = (folderId: string, allFolders: Folder[], allPacks: StudyPack[]) => {
     let descendantFolderIds: string[] = [];
     const findChildren = (parentId: string) => {
         const children = allFolders.filter(f => f.parentId === parentId);
         for (const child of children) {
-            if (!child.isDeleted) {
-                descendantFolderIds.push(child.id);
-                findChildren(child.id);
-            }
+            // We need to include all descendants, even deleted ones, for restore/delete logic
+            descendantFolderIds.push(child.id);
+            findChildren(child.id);
         }
     };
     findChildren(folderId);
-    const packsInDescendants = allPacks.filter(p => [...descendantFolderIds, folderId].includes(p.folderId || '')).map(p => p.id);
+    const allFolderIds = [folderId, ...descendantFolderIds];
+    const packsInDescendants = allPacks.filter(p => allFolderIds.includes(p.folderId || '')).map(p => p.id);
     return { folderIds: descendantFolderIds, packIds: packsInDescendants };
 };
 
@@ -108,9 +108,7 @@ export const useUserStore = create<UserState & UserActions>()(
             isTutorLoading: false,
             tutorContext: undefined,
 
-
             setUserData: (data) => set({ ...data, isLoggedIn: data.name !== DEFAULT_USER_NAME }),
-
 
             importUserData: (file) => {
                 const reader = new FileReader();
@@ -126,14 +124,13 @@ export const useUserStore = create<UserState & UserActions>()(
                 reader.readAsText(file);
             },
 
-
             logout: () => {
                 exportUserData(get());
                 set({ ...initialUserData, isLoggedIn: false });
                 localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear persisted storage
                 useUIStore.getState().showToast("Đã đăng xuất và sao lưu dữ liệu.");
             },
-           
+            
             changeName: (newName) => {
                 const finalName = newName.trim() === '' ? DEFAULT_USER_NAME : newName.trim();
                 set({ name: finalName });
@@ -141,7 +138,7 @@ export const useUserStore = create<UserState & UserActions>()(
                     set({ isLoggedIn: true });
                 } else { set({ isLoggedIn: false }); }
             },
-           
+            
             addXp: (amount, customMessage) => {
                 const roundedAmount = Math.round(amount);
                 if (roundedAmount > 0) {
@@ -149,12 +146,11 @@ export const useUserStore = create<UserState & UserActions>()(
                     useUIStore.getState().showToast(customMessage || `+${roundedAmount} XP!`);
                 }
             },
-           
+            
             checkAndAwardBadges: () => {
                 const state = get();
                 const newlyUnlocked: BadgeId[] = [];
                 const hasBadge = (id: BadgeId) => state.unlockedBadges.includes(id);
-
 
                 if (!hasBadge(BadgeId.FIRST_PACK) && state.studyPacks.length > 0) newlyUnlocked.push(BadgeId.FIRST_PACK);
                 if (!hasBadge(BadgeId.THE_ARCHITECT) && state.studyPacks.length >= ARCHITECT_THRESHOLD) newlyUnlocked.push(BadgeId.THE_ARCHITECT);
@@ -173,7 +169,6 @@ export const useUserStore = create<UserState & UserActions>()(
                 if (!hasBadge(BadgeId.STEEL_BRAIN) && state.totalCorrectAnswers >= STEEL_BRAIN_THRESHOLD) newlyUnlocked.push(BadgeId.STEEL_BRAIN);
                 if (!hasBadge(BadgeId.THE_CONQUEROR) && state.perfectQuizCompletions >= CONQUEROR_THRESHOLD) newlyUnlocked.push(BadgeId.THE_CONQUEROR);
 
-
                 // HOLISTIC_LEARNER
                 if (!hasBadge(BadgeId.HOLISTIC_LEARNER)) {
                     const requiredModes = [LearningMode.SUMMARY, LearningMode.QUIZ, LearningMode.FILL_IN_THE_BLANK, LearningMode.GLOSSARY];
@@ -181,63 +176,63 @@ export const useUserStore = create<UserState & UserActions>()(
                         newlyUnlocked.push(BadgeId.HOLISTIC_LEARNER);
                     }
                 }
-               
+                
                 // SUBJECT_MATTER_EXPERT
                 if (!hasBadge(BadgeId.SUBJECT_MATTER_EXPERT)) {
                     if (state.studyPacks.some(p => p.progress >= 100)) {
                         newlyUnlocked.push(BadgeId.SUBJECT_MATTER_EXPERT);
                     }
                 }
-               
+                
                 if (newlyUnlocked.length > 0) {
                     set(prev => ({ unlockedBadges: [...prev.unlockedBadges, ...newlyUnlocked] }));
                     newlyUnlocked.forEach(badgeId => useUIStore.getState().showToast(`🏆 Huy hiệu mới: ${BADGES_DATA[badgeId].name}!`));
                 }
             },
-           
+            
             checkDailyStreak: () => {
                 const today = new Date(); today.setHours(0, 0, 0, 0);
                 const lastActivity = new Date(get().lastActivityDate); lastActivity.setHours(0, 0, 0, 0);
                 const diffDays = Math.round((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
                 if (diffDays > 1 && get().lastActivityDate !== new Date(0).toISOString()) { set({ streak: 0 }); }
             },
-           
+            
             handleActivity: () => {
                 const today = new Date(); today.setHours(0, 0, 0, 0);
                 const lastActivity = new Date(get().lastActivityDate); lastActivity.setHours(0, 0, 0, 0);
                 const diffDays = Math.round((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
-               
+                
                 if (diffDays === 1) {
                     const newStreak = get().streak + 1;
                     set({ streak: newStreak, lastActivityDate: new Date().toISOString() });
-                    // Award XP bonus only for streaks of 2 days or more
                     if (newStreak >= 2) {
-                        get().addXp(XP_ACTIONS.STREAK_BONUS);
+                        get().addXp(XP_ACTIONS.STREAK_BONUS, `🔥 Chuỗi ${newStreak} ngày! +${XP_ACTIONS.STREAK_BONUS} XP`);
+                    } else {
+                        useUIStore.getState().showToast(`🔥 Chuỗi ${newStreak} ngày!`);
                     }
-                    useUIStore.getState().showToast(`🔥 Chuỗi ${newStreak} ngày!`);
                 } else if (diffDays > 1) {
-                    // Reset streak to 0 as per user request
-                    set({ streak: 0, lastActivityDate: new Date().toISOString() });
-                    useUIStore.getState().showToast(`Chuỗi học tập đã được reset.`);
-                } else {
-                    // Handle first-ever activity or same-day activity
+                    set({ streak: 1, lastActivityDate: new Date().toISOString() });
+                    useUIStore.getState().showToast(`Bắt đầu chuỗi mới!`);
+                } else { 
                     const isFirstEver = get().lastActivityDate === new Date(0).toISOString();
                     if (isFirstEver) {
-                        // For the very first activity, start the streak at 1
                         set({ streak: 1, lastActivityDate: new Date().toISOString() });
                         useUIStore.getState().showToast(`🔥 Bắt đầu chuỗi mới!`);
                     } else {
-                        // For subsequent activities on the same day, just update the timestamp
                         set({ lastActivityDate: new Date().toISOString() });
                     }
                 }
 
-
                 const currentHour = new Date().getHours();
-                if (currentHour >= 22 && !get().unlockedBadges.includes(BadgeId.NIGHT_OWL)) set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.NIGHT_OWL] }));
-                if (currentHour < 7 && !get().unlockedBadges.includes(BadgeId.EARLY_BIRD)) set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.EARLY_BIRD] }));
+                if (currentHour >= 22 && !get().unlockedBadges.includes(BadgeId.NIGHT_OWL)) {
+                    set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.NIGHT_OWL] }));
+                    useUIStore.getState().showToast(`🏆 Huy hiệu mới: ${BADGES_DATA[BadgeId.NIGHT_OWL].name}!`);
+                }
+                if (currentHour < 7 && !get().unlockedBadges.includes(BadgeId.EARLY_BIRD)) {
+                     set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.EARLY_BIRD] }));
+                     useUIStore.getState().showToast(`🏆 Huy hiệu mới: ${BADGES_DATA[BadgeId.EARLY_BIRD].name}!`);
+                }
             },
-
 
             createStudyPack: async (source) => {
                 set({ isGenerating: true });
@@ -252,22 +247,23 @@ export const useUserStore = create<UserState & UserActions>()(
                             reader.onerror = error => reject(error);
                         });
                         serviceSource.file = { data: base64Data, mimeType: source.file.type };
-                        if (source.text?.trim()) serviceSource.text = source.text.trim();
-                    } else { serviceSource.text = source.text?.trim(); }
-                   
-                    const packId = `pack_${Date.now()}`;
+                    }
+                    if (source.text?.trim()) {
+                        serviceSource.text = source.text.trim();
+                    }
+                    
                     const generatedContent = await createStudyPackService(serviceSource);
 
-
+                    const packId = `pack_${Date.now()}`;
                     const randomColor = PACK_COLORS[Math.floor(Math.random() * PACK_COLORS.length)].key;
                     const availableIcons = Object.keys(ICON_MAP).filter(key => key !== 'default');
                     const randomIcon = availableIcons[Math.floor(Math.random() * availableIcons.length)];
-
 
                     const newPack: StudyPack = {
                         id: packId, imageUrl: '📚', progress: 0, ...generatedContent,
                         title: generatedContent.title || "Gói không tên", lesson: generatedContent.lesson || [],
                         quiz: (generatedContent.quiz || []).map((q, i) => ({ ...q, uniqueId: `${packId}_q_${i}` })),
+                        m2StaatexamQuiz: (generatedContent.m2StaatexamQuiz || []).map((q, i) => ({ ...q, uniqueId: `${packId}_m2_${i}` })),
                         originalQuizCount: (generatedContent.quiz || []).length,
                         fillInTheBlanks: generatedContent.fillInTheBlanks || [], glossary: generatedContent.glossary || [], folderId: null,
                         color: randomColor,
@@ -279,17 +275,16 @@ export const useUserStore = create<UserState & UserActions>()(
                     handleActivity();
                     return true;
                 } catch (err) {
-                    console.error(err);
+                    console.error("Lỗi trong createStudyPack store:", err);
+                    // Lỗi đã được hiển thị bởi `apiRequest` trong service
                     return false;
                 } finally { set({ isGenerating: false }); }
             },
-
 
             recordLearningModeUsage: (packId, mode) => {
                 set(state => {
                     const pack = state.studyPacks.find(p => p.id === packId);
                     if (!pack) return state;
-
 
                     const currentModes = pack.usedLearningModes || [];
                     if (!currentModes.includes(mode)) {
@@ -301,55 +296,52 @@ export const useUserStore = create<UserState & UserActions>()(
                 get().checkAndAwardBadges();
             },
 
-
             updateStudyPack: (updatedPack) => {
                 const oldPack = get().studyPacks.find(p => p.id === updatedPack.id);
-           
+            
                 if (oldPack) {
                     const hasBeenTrulyCustomized = (oldPack.title !== updatedPack.title || oldPack.color !== updatedPack.color || oldPack.icon !== updatedPack.icon);
-           
+            
                     if (hasBeenTrulyCustomized) {
-                        // Award XP only for the first customization of this specific pack
                         if (!oldPack.hasBeenCustomized) {
                             get().addXp(XP_ACTIONS.PERSONAL_TOUCH);
-                            updatedPack.hasBeenCustomized = true;
+                            updatedPack.hasBeenCustomized = true; 
                         }
-           
-                        // Award badge for the very first customization across any pack
+            
                         if (!get().unlockedBadges.includes(BadgeId.PERSONAL_TOUCH)) {
                             set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.PERSONAL_TOUCH] }));
                             useUIStore.getState().showToast(`🏆 Huy hiệu mới: ${BADGES_DATA[BadgeId.PERSONAL_TOUCH].name}!`);
                         }
                     }
                 }
-               
-                set(state => ({
-                    studyPacks: state.studyPacks.map(p => p.id === updatedPack.id ? updatedPack : p)
+                
+                set(state => ({ 
+                    studyPacks: state.studyPacks.map(p => p.id === updatedPack.id ? updatedPack : p) 
                 }));
             },
-           
+            
             handleQuizAnswer: (packId, questionId, selectedAnswers) => {
                 const state = get();
                 const pack = state.studyPacks.find(p => p.id === packId);
                 const question = pack?.quiz.find(q => q.uniqueId === questionId);
-       
+        
                 if (!pack || !question) {
                     console.error("Pack or question not found in handleQuizAnswer");
                     return;
                 }
-       
+        
                 const session = pack.quizSession || {
                     currentQuestionIndex: 0, comboCount: 0, submittedAnswers: {},
                     incorrectlyAnsweredIds: [], activeQuestionIds: pack.quiz.map(q => q.uniqueId),
                 };
-       
+        
                 const isCorrect = question.correctAnswers.length === selectedAnswers.length &&
                                   question.correctAnswers.every(ans => selectedAnswers.includes(ans));
                 const newComboCount = isCorrect ? session.comboCount + 1 : 0;
-               
+                
                 let xpGained = 0;
                 let toastMessage: string | null = null;
-               
+                
                 if (isCorrect && !state.correctlyAnsweredQuizIds.includes(questionId)) {
                     let baseAmount = XP_ACTIONS.QUIZ_CORRECT_ANSWER + (QUIZ_DIFFICULTY_POINTS[question.difficulty as QuizDifficulty] || 0);
                     if (newComboCount > 1) {
@@ -357,12 +349,12 @@ export const useUserStore = create<UserState & UserActions>()(
                     }
                     const streakMultiplier = state.streak > 1 ? 1 + (state.streak - 1) * 0.2 : 1;
                     xpGained = Math.round(baseAmount * streakMultiplier);
-       
+        
                     toastMessage = streakMultiplier > 1
                         ? `+${xpGained} XP! (Thưởng chuỗi x${streakMultiplier.toFixed(1)})`
                         : `+${xpGained} XP!`;
                 }
-       
+        
                 set(prev => {
                     const newSubmittedAnswers: Record<string, SubmittedAnswer> = {
                         ...session.submittedAnswers,
@@ -371,33 +363,33 @@ export const useUserStore = create<UserState & UserActions>()(
                     const newIncorrectlyAnsweredIds = !isCorrect && !session.incorrectlyAnsweredIds.includes(questionId)
                         ? [...session.incorrectlyAnsweredIds, questionId]
                         : session.incorrectlyAnsweredIds.filter(id => !(id === questionId && isCorrect));
-                   
+                    
                     const newSession: QuizSession = {
                         ...session,
                         comboCount: newComboCount,
                         submittedAnswers: newSubmittedAnswers,
                         incorrectlyAnsweredIds: newIncorrectlyAnsweredIds,
                     };
-       
+        
                     const newCorrectlyAnsweredIds = (isCorrect && !prev.correctlyAnsweredQuizIds.includes(questionId))
                         ? [...prev.correctlyAnsweredQuizIds, questionId]
                         : prev.correctlyAnsweredQuizIds;
-                   
+                    
                     const newTotalCorrectAnswers = (isCorrect && !prev.correctlyAnsweredQuizIds.includes(questionId))
                         ? prev.totalCorrectAnswers + 1
                         : prev.totalCorrectAnswers;
-       
+        
                     const totalCorrectForPack = newCorrectlyAnsweredIds.filter(id => id.startsWith(packId)).length;
                     const totalQuestions = pack.originalQuizCount || pack.quiz.length;
                     const newProgress = totalQuestions > 0 ? Math.min(100, Math.round((totalCorrectForPack / totalQuestions) * 100)) : 0;
-       
+        
                     const updatedPacks = prev.studyPacks.map(p => {
                         if (p.id === packId) {
                             return { ...p, quizSession: newSession, progress: newProgress };
                         }
                         return p;
                     });
-                   
+                    
                     return {
                         xp: prev.xp + xpGained,
                         correctlyAnsweredQuizIds: newCorrectlyAnsweredIds,
@@ -405,27 +397,25 @@ export const useUserStore = create<UserState & UserActions>()(
                         studyPacks: updatedPacks
                     };
                 });
-       
+        
                 if (toastMessage) {
                     useUIStore.getState().showToast(toastMessage);
                 }
-               
+                
                 if (isCorrect && newComboCount >= HOT_STREAK_THRESHOLD && !get().unlockedBadges.includes(BadgeId.HOT_STREAK)) {
                     set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.HOT_STREAK] }));
                 }
             },
-           
+            
             handleQuizComplete: (pack, session) => {
                 const originalQuestionsCount = pack.originalQuizCount || pack.quiz.length;
                 if (session.activeQuestionIds.length >= originalQuestionsCount) get().handleActivity();
 
-
                 const score = Object.values(session.submittedAnswers).filter((a: SubmittedAnswer) => a.isCorrect).length;
                 const isPerfect = score === session.activeQuestionIds.length && session.activeQuestionIds.length > 0;
-               
+                
                 if (isPerfect) {
                     set(prev => ({ perfectQuizCompletions: prev.perfectQuizCompletions + 1 }));
-
 
                     if (!get().unlockedBadges.includes(BadgeId.FLAWLESS_VICTORY)) {
                         const questionsInSession = pack.quiz.filter(q => session.activeQuestionIds.includes(q.uniqueId));
@@ -436,7 +426,7 @@ export const useUserStore = create<UserState & UserActions>()(
                         }
                     }
                 }
-               
+                
                 if (!get().unlockedBadges.includes(BadgeId.FIRST_QUIZ)) {
                     set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.FIRST_QUIZ] }));
                     useUIStore.getState().showToast(`🏆 Huy hiệu mới: ${BADGES_DATA[BadgeId.FIRST_QUIZ].name}!`);
@@ -444,185 +434,321 @@ export const useUserStore = create<UserState & UserActions>()(
                 get().checkAndAwardBadges();
             },
 
+            handleM2StaatexamQuizAnswer: (packId, questionId, selectedAnswers) => {
+                const state = get();
+                const pack = state.studyPacks.find(p => p.id === packId);
+                const question = pack?.m2StaatexamQuiz?.find(q => q.uniqueId === questionId);
+        
+                if (!pack || !question || !pack.m2StaatexamQuiz) return;
+        
+                const session = pack.m2StaatexamQuizSession || {
+                    currentQuestionIndex: 0, comboCount: 0, submittedAnswers: {},
+                    incorrectlyAnsweredIds: [], activeQuestionIds: pack.m2StaatexamQuiz.map(q => q.uniqueId),
+                };
+        
+                const isCorrect = question.correctAnswers.length === selectedAnswers.length &&
+                                  question.correctAnswers.every(ans => selectedAnswers.includes(ans));
+                const newComboCount = isCorrect ? session.comboCount + 1 : 0;
+                
+                let xpGained = 0;
+                let toastMessage: string | null = null;
+                
+                if (isCorrect && !state.correctlyAnsweredQuizIds.includes(questionId)) {
+                    let baseAmount = XP_ACTIONS.QUIZ_CORRECT_ANSWER + (QUIZ_DIFFICULTY_POINTS[question.difficulty as QuizDifficulty] || 0);
+                    if (newComboCount > 1) baseAmount += QUIZ_COMBO_BONUS * (newComboCount - 1);
+                    const streakMultiplier = state.streak > 1 ? 1 + (state.streak - 1) * 0.2 : 1;
+                    xpGained = Math.round(baseAmount * streakMultiplier);
+                    toastMessage = streakMultiplier > 1 ? `+${xpGained} XP! (Thưởng chuỗi x${streakMultiplier.toFixed(1)})` : `+${xpGained} XP!`;
+                }
+        
+                set(prev => {
+                    const newSubmittedAnswers: Record<string, SubmittedAnswer> = {
+                        ...session.submittedAnswers,
+                        [questionId]: { selectedAnswers, isCorrect }
+                    };
+                    const newIncorrectlyAnsweredIds = !isCorrect && !session.incorrectlyAnsweredIds.includes(questionId)
+                        ? [...session.incorrectlyAnsweredIds, questionId]
+                        : session.incorrectlyAnsweredIds.filter(id => !(id === questionId && isCorrect));
+                    
+                    const newSession: QuizSession = { ...session, comboCount: newComboCount, submittedAnswers: newSubmittedAnswers, incorrectlyAnsweredIds: newIncorrectlyAnsweredIds };
+                    const newCorrectlyAnsweredIds = (isCorrect && !prev.correctlyAnsweredQuizIds.includes(questionId)) ? [...prev.correctlyAnsweredQuizIds, questionId] : prev.correctlyAnsweredQuizIds;
+                    const newTotalCorrectAnswers = (isCorrect && !prev.correctlyAnsweredQuizIds.includes(questionId)) ? prev.totalCorrectAnswers + 1 : prev.totalCorrectAnswers;
+                    
+                    const updatedPacks = prev.studyPacks.map(p => p.id === packId ? { ...p, m2StaatexamQuizSession: newSession } : p);
+                    
+                    return {
+                        xp: prev.xp + xpGained,
+                        correctlyAnsweredQuizIds: newCorrectlyAnsweredIds,
+                        totalCorrectAnswers: newTotalCorrectAnswers,
+                        studyPacks: updatedPacks
+                    };
+                });
+        
+                if (toastMessage) useUIStore.getState().showToast(toastMessage);
+                if (isCorrect && newComboCount >= HOT_STREAK_THRESHOLD && !get().unlockedBadges.includes(BadgeId.HOT_STREAK)) {
+                    set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.HOT_STREAK] }));
+                }
+            },
 
-            generateMoreQuestions: async (packId) => {
+            handleM2StaatexamQuizComplete: (pack, session) => {
+                get().handleActivity();
+                const score = Object.values(session.submittedAnswers).filter((a: SubmittedAnswer) => a.isCorrect).length;
+                const isPerfect = score === session.activeQuestionIds.length && session.activeQuestionIds.length > 0;
+                
+                if (isPerfect) {
+                    set(prev => ({ perfectQuizCompletions: prev.perfectQuizCompletions + 1 }));
+
+                    if (!get().unlockedBadges.includes(BadgeId.FLAWLESS_VICTORY)) {
+                        const questionsInSession = (pack.m2StaatexamQuiz || []).filter(q => session.activeQuestionIds.includes(q.uniqueId));
+                        const hasHardQuestion = questionsInSession.some(q => q.difficulty === QuizDifficulty.HARD);
+                        if (hasHardQuestion) {
+                            set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.FLAWLESS_VICTORY] }));
+                            useUIStore.getState().showToast(`🏆 Huy hiệu mới: ${BADGES_DATA[BadgeId.FLAWLESS_VICTORY].name}!`);
+                        }
+                    }
+                }
+                
+                if (!get().unlockedBadges.includes(BadgeId.FIRST_QUIZ)) {
+                    set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.FIRST_QUIZ] }));
+                    useUIStore.getState().showToast(`🏆 Huy hiệu mới: ${BADGES_DATA[BadgeId.FIRST_QUIZ].name}!`);
+                }
+                get().checkAndAwardBadges();
+            },
+            
+            generateMoreQuestions: async (packId, isM2Style) => {
                 const pack = get().studyPacks.find(p => p.id === packId);
                 if (!pack) return;
+
                 set({ isGenerating: true });
                 try {
-                    const lessonContext = pack.lesson.map(l => l.content).join('\n');
-                    const newQuestions = await generateMoreQuestionsService(lessonContext, pack.quiz);
-                    const newMCQs = newQuestions.map((q, i) => ({ ...q, uniqueId: `${packId}_gen_${Date.now()}_${i}` }));
-                   
-                    const allQuestions = [...pack.quiz, ...newMCQs];
-                   
-                    // Atomically reset the session when new questions are added.
-                    // This brings the user back to the start of the quiz with the new questions included.
-                    const newSession: QuizSession = {
-                        currentQuestionIndex: 0,
-                        comboCount: 0,
-                        submittedAnswers: {},
-                        incorrectlyAnsweredIds: [],
-                        activeQuestionIds: allQuestions.map(q => q.uniqueId),
-                    };
-                   
-                    const updatedPack = { ...pack, quiz: allQuestions, quizSession: newSession };
-                   
-                    get().updateStudyPack(updatedPack);
-                    set(prev => ({ generatedQuestionCount: prev.generatedQuestionCount + newMCQs.length }));
-                    useUIStore.getState().showToast(`Đã tạo thêm ${newMCQs.length} câu hỏi mới!`);
+                    const context = pack.lesson.map(b => b.content).join('\n');
+                    const existingQuestions = isM2Style ? (pack.m2StaatexamQuiz || []) : pack.quiz;
+                    const newQuestionsData = await generateMoreQuestionsService(context, existingQuestions, isM2Style);
+
+                    if (newQuestionsData.length > 0) {
+                        set(state => {
+                            const packToUpdate = state.studyPacks.find(p => p.id === packId);
+                            if (!packToUpdate) return state;
+
+                            const quizKey = isM2Style ? 'm2StaatexamQuiz' : 'quiz';
+                            const sessionKey = isM2Style ? 'm2StaatexamQuizSession' : 'quizSession';
+                            const currentQuiz = packToUpdate[quizKey] || [];
+                            const newQuestions = newQuestionsData.map((q, i) => ({
+                                ...q,
+                                uniqueId: `${packId}_${isM2Style ? 'm2' : 'q'}_${Date.now()}_${i}`
+                            }));
+                            const updatedQuiz = [...currentQuiz, ...newQuestions];
+                            
+                            const updatedSession = packToUpdate[sessionKey] ? {
+                                ...packToUpdate[sessionKey]!,
+                                currentQuestionIndex: 0,
+                                submittedAnswers: {},
+                                incorrectlyAnsweredIds: [],
+                                activeQuestionIds: updatedQuiz.map(q => q.uniqueId)
+                            } : undefined;
+
+                            const updatedPack = {
+                                ...packToUpdate,
+                                [quizKey]: updatedQuiz,
+                                [sessionKey]: updatedSession
+                            };
+
+                            return {
+                                studyPacks: state.studyPacks.map(p => p.id === packId ? updatedPack : p),
+                                generatedQuestionCount: state.generatedQuestionCount + newQuestions.length,
+                            };
+                        });
+                        get().addXp(XP_ACTIONS.ASK_AI * 2);
+                        useUIStore.getState().showToast(`✨ Đã tạo ${newQuestionsData.length} câu hỏi mới!`);
+                    } else {
+                         useUIStore.getState().showToast(`Không thể tạo thêm câu hỏi vào lúc này.`);
+                    }
                 } catch (error) {
-                    useUIStore.getState().showToast('Không thể tạo thêm câu hỏi.');
+                    console.error("Error generating more questions:", error);
+                    // Lỗi đã được hiển thị bởi `apiRequest` trong service
                 } finally {
                     set({ isGenerating: false });
                 }
             },
-           
-            // Tutor
+
             openTutor: (greeting) => {
-                if (get().tutorState === 'closed') {
-                    set({ tutorMessages: [{ sender: 'ai', text: greeting || "Chào bạn! Tôi có thể giúp gì?" }] });
-                }
-                set({ tutorState: 'open' });
+                set(state => {
+                    const messages = state.tutorMessages.length > 0 ? state.tutorMessages : [{ sender: 'ai', text: greeting || 'Chào bạn! Tôi có thể giúp gì cho bạn?' } as ChatMessage];
+                    return { tutorState: 'open', tutorMessages: messages };
+                });
             },
-            closeTutor: () => set({ tutorState: 'closed', tutorMessages: [], tutorContext: undefined }),
+            closeTutor: () => set({ tutorState: 'closed', tutorContext: undefined }),
             minimizeTutor: () => set({ tutorState: 'minimized' }),
-            toggleTutorSize: () => set(state => ({
-                tutorState: state.tutorState === 'open' ? 'maximized' : 'open'
-            })),
+            toggleTutorSize: () => set(state => ({ tutorState: state.tutorState === 'maximized' ? 'open' : 'maximized' })),
+            
             sendMessageToTutor: async (message) => {
-                const { addXp, handleActivity, tutorContext } = get();
-                set(prev => ({ tutorMessages: [...prev.tutorMessages, { sender: 'user', text: message }], isTutorLoading: true }));
-                set(prev => ({ questionsAskedCount: prev.questionsAskedCount + 1 }));
-
-
-                // --- XP Limit Logic ---
-                const todayStr = new Date().toISOString().split('T')[0];
-                const tutorGains = get().tutorXpGainsToday;
-
-
-                if (!tutorGains || tutorGains.date !== todayStr) {
-                    // First message of a new day, reset counter and award XP
-                    set({ tutorXpGainsToday: { count: 1, date: todayStr, limitNotified: false } });
-                    addXp(XP_ACTIONS.ASK_AI);
-                } else if (tutorGains.count < 5) {
-                    // Not the first, but under the limit, increment and award XP
-                    set(prev => ({ tutorXpGainsToday: { ...prev.tutorXpGainsToday!, count: prev.tutorXpGainsToday!.count + 1 } }));
-                    addXp(XP_ACTIONS.ASK_AI);
-                } else {
-                    // Limit reached. Only show toast if it hasn't been shown today.
-                    if (!tutorGains.limitNotified) {
-                        useUIStore.getState().showToast("Bạn đã đạt giới hạn XP từ Gia sư AI cho hôm nay.");
-                        // Mark that the notification has been shown for today.
-                        set(prev => ({ tutorXpGainsToday: { ...prev.tutorXpGainsToday!, limitNotified: true } }));
-                    }
+                if (get().isTutorLoading) return;
+                
+                const today = new Date().toISOString().split('T')[0];
+                let tutorXpData = get().tutorXpGainsToday || { count: 0, date: today, limitNotified: false };
+                if (tutorXpData.date !== today) {
+                    tutorXpData = { count: 0, date: today, limitNotified: false };
                 }
-                // --- End XP Logic ---
 
+                set(state => ({
+                    isTutorLoading: true,
+                    tutorMessages: [...state.tutorMessages, { sender: 'user', text: message }],
+                }));
 
-                handleActivity();
-               
+                const fullLessonContext = get().studyPacks.map(p => p.lesson.map(l => l.content).join('\n')).join('\n\n');
+                
                 try {
-                    const activePack = get().studyPacks.find(p => p.id === get().tutorContext?.split('_pack_')[0]);
-                    const lessonContext = activePack ? activePack.lesson.map(l => l.content).join('\n') : "Không có bối cảnh bài học cụ thể.";
-                    const responseText = await askTutor(lessonContext, message, tutorContext);
-                    set(prev => ({ tutorMessages: [...prev.tutorMessages, { sender: 'ai', text: responseText }] }));
-                } catch (error) { set(prev => ({ tutorMessages: [...prev.tutorMessages, { sender: 'ai', text: "Xin lỗi, tôi gặp sự cố." }] })); }
-                finally { set({ isTutorLoading: false, tutorContext: undefined }); }
+                    const response = await askTutor(fullLessonContext, message, get().tutorContext);
+                    set(state => ({
+                        tutorMessages: [...state.tutorMessages, { sender: 'ai', text: response }],
+                        questionsAskedCount: state.questionsAskedCount + 1,
+                    }));
+                    get().handleActivity();
+
+                    if (tutorXpData.count < 10) {
+                        get().addXp(XP_ACTIONS.ASK_AI);
+                        set({ tutorXpGainsToday: { ...tutorXpData, count: tutorXpData.count + 1 } });
+                    } else if (!tutorXpData.limitNotified) {
+                        useUIStore.getState().showToast("Bạn đã đạt giới hạn XP nhận được từ Gia sư AI hôm nay.");
+                        set({ tutorXpGainsToday: { ...tutorXpData, limitNotified: true } });
+                    }
+
+                } catch (error) {
+                    set(state => ({
+                        tutorMessages: [...state.tutorMessages, { sender: 'ai', text: "Xin lỗi, tôi gặp lỗi khi xử lý yêu cầu của bạn." }],
+                    }));
+                } finally {
+                    set({ isTutorLoading: false });
+                }
             },
+
             setTutorContextAndOpen: (context, greeting) => {
                 set({ tutorContext: context });
                 get().openTutor(greeting);
             },
             clearTutorContext: () => set({ tutorContext: undefined }),
-           
-            // File Management
-            createFolder: (parentId) => set(state => ({ folders: [...state.folders, { id: `folder_${Date.now()}`, name: 'Thư mục không tên', parentId }]})),
-            updateFolder: (id, newName, newIcon) => set(state => ({ folders: state.folders.map(f => f.id === id ? { ...f, name: newName, icon: newIcon } : f) })),
-            movePacksToFolder: (packIds, folderId) => set(state => ({ studyPacks: state.studyPacks.map(p => packIds.includes(p.id) ? { ...p, folderId } : p) })),
-           
+
+            createFolder: (parentId) => {
+                const newFolder: Folder = {
+                    id: `folder_${Date.now()}`,
+                    name: 'Thư mục mới',
+                    parentId: parentId || null,
+                };
+                set(state => ({ folders: [...state.folders, newFolder] }));
+            },
+            updateFolder: (id, newName, newIcon) => {
+                set(state => ({
+                    folders: state.folders.map(f => f.id === id ? { ...f, name: newName, icon: newIcon } : f),
+                }));
+            },
+            movePacksToFolder: (packIds, folderId) => {
+                set(state => ({
+                    studyPacks: state.studyPacks.map(p => packIds.includes(p.id) ? { ...p, folderId: folderId } : p),
+                }));
+            },
+            
             softDeleteItem: (id, type) => {
                 if (type === 'pack') {
-                    set(prev => ({ studyPacks: prev.studyPacks.map(p => p.id === id ? { ...p, isDeleted: true } : p) }));
+                    set(state => ({ studyPacks: state.studyPacks.map(p => p.id === id ? { ...p, isDeleted: true } : p) }));
                 } else {
                     const { folderIds, packIds } = getDescendantIds(id, get().folders, get().studyPacks);
-                    const allFolderIds = [id, ...folderIds];
-                    set(prev => ({
-                        folders: prev.folders.map(f => allFolderIds.includes(f.id) ? { ...f, isDeleted: true } : f),
-                        studyPacks: prev.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: true } : p)
+                    const allFoldersToDelete = [id, ...folderIds];
+                    set(state => ({
+                        folders: state.folders.map(f => allFoldersToDelete.includes(f.id) ? { ...f, isDeleted: true } : f),
+                        studyPacks: state.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: true } : p)
                     }));
                 }
+                 useUIStore.getState().showToast("Đã chuyển vào thùng rác.");
             },
-            requestSoftDelete: (id, type) => useUIStore.getState().showConfirmModal({
-                title: `Xóa ${type === 'folder' ? 'thư mục' : 'gói học tập'}?`,
-                text: "Thao tác này sẽ chuyển mục này và tất cả nội dung bên trong vào thùng rác. Bạn có thể khôi phục lại sau.",
-                confirmText: "Chuyển vào thùng rác",
-                onConfirm: () => get().softDeleteItem(id, type),
-                isDestructive: true,
-            }),
-
-
+            
+            requestSoftDelete: (id, type) => {
+                 const { softDeleteItem } = get();
+                useUIStore.getState().showConfirmModal({
+                    title: `Xóa ${type === 'pack' ? 'Gói học tập' : 'Thư mục'}?`,
+                    text: `Mục này sẽ được chuyển vào thùng rác. ${type === 'folder' ? 'Tất cả các mục con bên trong cũng sẽ được chuyển vào thùng rác.' : ''} Bạn có thể khôi phục lại sau.`,
+                    confirmText: 'Chuyển vào thùng rác',
+                    onConfirm: () => softDeleteItem(id, type),
+                    isDestructive: true,
+                });
+            },
+            
             restoreItem: (id, type) => {
                 if (type === 'pack') {
-                    set(prev => ({ studyPacks: prev.studyPacks.map(p => p.id === id ? { ...p, isDeleted: false } : p) }));
+                    const packToRestore = get().studyPacks.find(p => p.id === id);
+                    const parentIsDeleted = get().folders.some(f => f.id === packToRestore?.folderId && f.isDeleted);
+                    set(state => ({ studyPacks: state.studyPacks.map(p => p.id === id ? { ...p, isDeleted: false, folderId: parentIsDeleted ? null : p.folderId } : p) }));
+
                 } else {
-                    const folder = get().folders.find(f => f.id === id);
-                    const parentId = folder?.parentId;
                     const { folderIds, packIds } = getDescendantIds(id, get().folders, get().studyPacks);
-                    const allFolderIds = [id, ...folderIds];
-                    set(prev => ({
-                        folders: prev.folders.map(f => (allFolderIds.includes(f.id) || (f.id === parentId && f.isDeleted)) ? { ...f, isDeleted: false } : f),
-                        studyPacks: prev.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: false } : p)
+                    const allFoldersToRestore = [id, ...folderIds];
+                    
+                    const folderToRestore = get().folders.find(f => f.id === id);
+                    const parentIsDeleted = get().folders.some(f => f.id === folderToRestore?.parentId && f.isDeleted);
+                    
+                    set(state => ({
+                        folders: state.folders.map(f => allFoldersToRestore.includes(f.id) 
+                            ? { ...f, isDeleted: false, parentId: (f.id === id && parentIsDeleted) ? null : f.parentId } 
+                            : f),
+                        studyPacks: state.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: false } : p)
                     }));
                 }
+                useUIStore.getState().showToast("Đã khôi phục.");
             },
-
-
+            
             permanentDeleteItem: (id, type) => {
                 if (type === 'pack') {
-                    set(prev => ({ studyPacks: prev.studyPacks.filter(p => p.id !== id) }));
+                    set(state => ({ studyPacks: state.studyPacks.filter(p => p.id !== id) }));
                 } else {
                     const { folderIds, packIds } = getDescendantIds(id, get().folders, get().studyPacks);
-                    const allFolderIds = [id, ...folderIds];
-                    set(prev => ({
-                        folders: prev.folders.filter(f => !allFolderIds.includes(f.id)),
-                        studyPacks: prev.studyPacks.filter(p => !packIds.includes(p.id))
+                    const allIdsToDelete = [id, ...folderIds];
+                    set(state => ({
+                        folders: state.folders.filter(f => !allIdsToDelete.includes(f.id)),
+                        studyPacks: state.studyPacks.filter(p => !packIds.includes(p.id))
                     }));
                 }
+                useUIStore.getState().showToast("Đã xóa vĩnh viễn.");
             },
-            requestPermanentDelete: (id, type) => useUIStore.getState().showConfirmModal({
-                title: `Xóa vĩnh viễn ${type === 'folder' ? 'thư mục' : 'gói học tập'}?`,
-                text: "Hành động này không thể được hoàn tác.",
-                confirmText: "Xóa vĩnh viễn",
-                onConfirm: () => get().permanentDeleteItem(id, type),
-                isDestructive: true,
-            }),
 
+            requestPermanentDelete: (id, type) => {
+                const { permanentDeleteItem } = get();
+                useUIStore.getState().showConfirmModal({
+                    title: `Xóa vĩnh viễn?`,
+                    text: `Hành động này không thể hoàn tác. ${type === 'folder' ? 'Tất cả các mục con bên trong cũng sẽ bị xóa vĩnh viễn.' : ''}`,
+                    confirmText: 'Xóa vĩnh viễn',
+                    onConfirm: () => permanentDeleteItem(id, type),
+                    isDestructive: true,
+                });
+            },
 
-            restoreAll: () => set(prev => ({
-                studyPacks: prev.studyPacks.map(p => ({ ...p, isDeleted: false })),
-                folders: prev.folders.map(f => ({ ...f, isDeleted: false })),
-            })),
-           
-            permanentDeleteAll: () => set(prev => ({
-                studyPacks: prev.studyPacks.filter(p => !p.isDeleted),
-                folders: prev.folders.filter(f => !f.isDeleted),
-            })),
-            requestPermanentDeleteAll: () => useUIStore.getState().showConfirmModal({
-                title: "Xóa vĩnh viễn tất cả?",
-                text: "Hành động này sẽ xóa vĩnh viễn tất cả các mục trong thùng rác.",
-                confirmText: "Xóa vĩnh viễn",
-                onConfirm: get().permanentDeleteAll,
-                isDestructive: true,
-            }),
+            restoreAll: () => {
+                set(state => ({
+                    folders: state.folders.map(f => ({ ...f, isDeleted: false })),
+                    studyPacks: state.studyPacks.map(p => ({ ...p, isDeleted: false })),
+                }));
+                useUIStore.getState().showToast("Đã khôi phục tất cả.");
+            },
+
+            permanentDeleteAll: () => {
+                set(state => ({
+                    folders: state.folders.filter(f => !f.isDeleted),
+                    studyPacks: state.studyPacks.filter(p => !p.isDeleted),
+                }));
+                useUIStore.getState().showToast("Đã dọn sạch thùng rác.");
+            },
+
+            requestPermanentDeleteAll: () => {
+                 const { permanentDeleteAll } = get();
+                useUIStore.getState().showConfirmModal({
+                    title: `Dọn sạch thùng rác?`,
+                    text: `Tất cả các mục trong thùng rác sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.`,
+                    confirmText: 'Xóa vĩnh viễn',
+                    onConfirm: () => permanentDeleteAll(),
+                    isDestructive: true,
+                });
+            },
         }),
         {
             name: LOCAL_STORAGE_KEY,
-            onRehydrateStorage: () => (state) => {
-                if (state) {
-                    state.isLoggedIn = state.name !== DEFAULT_USER_NAME;
-                }
-            }
         }
     )
 );

@@ -1,6 +1,3 @@
-
-
-
 import type { ReactElement } from 'react';
 
 export enum LearningMode {
@@ -11,6 +8,7 @@ export enum LearningMode {
     TUTOR = "Tutor",
     TIPS = "Tips",
     CONCISE_SUMMARY = "ConciseSummary",
+    M2_STAATEXAM = "Trắc nghiệm M2 staatexam",
 }
 
 export interface SummaryContent {
@@ -77,10 +75,12 @@ export interface StudyPack {
     lesson: SummaryContent[];
     conciseSummary?: string;
     quiz: MCQ[];
+    m2StaatexamQuiz?: MCQ[];
     originalQuizCount?: number;
     fillInTheBlanks: FillInTheBlank[];
     glossary: GlossaryItem[];
     quizSession?: QuizSession;
+    m2StaatexamQuizSession?: QuizSession;
     folderId?: string | null;
     isDeleted?: boolean;
     color?: string;

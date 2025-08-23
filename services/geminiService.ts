@@ -66,7 +66,7 @@ export const askTutor = async (context: string, userQuestion: string, questionCo
 
 
 // Cập nhật hàm generateMoreQuestions để gọi đến backend
-export const generateMoreQuestions = async (context: string, existingQuestions: MCQ[]): Promise<Omit<MCQ, 'uniqueId'>[]> => {
+export const generateMoreQuestions = async (context: string, existingQuestions: MCQ[], isM2Style: boolean = false): Promise<Omit<MCQ, 'uniqueId'>[]> => {
     try {
         const response = await fetch(`${BACKEND_URL}/api/generate-questions`, {
             method: 'POST',
