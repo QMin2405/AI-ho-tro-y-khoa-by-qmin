@@ -1,4 +1,3 @@
-
 // Processes all inline formatting tags used in the app
 export const processInlineFormatting = (str: string) => {
     if (!str) return '';
@@ -43,7 +42,7 @@ export const markdownToHtml = (text: string) => {
             html += `<div class="my-4 overflow-x-auto rounded-lg border border-slate-200 dark:border-gray-700"><table class="w-full text-sm text-left">`;
 
             const headers = lines[i].split('|').map(h => h.trim()).filter(Boolean);
-            html += `<thead class="text-xs uppercase bg-slate-100 dark:bg-gray-700/50 text-slate-600 dark:text-slate-300"><tr>`;
+            html += `<thead class="text-xs uppercase bg-slate-100 dark:bg-gray-700/50"><tr>`;
             headers.forEach(header => {
                 html += `<th scope="col" class="px-4 py-3 font-semibold">${processInlineFormatting(header)}</th>`;
             });
@@ -67,26 +66,26 @@ export const markdownToHtml = (text: string) => {
 
         if (h3Match) {
             if (inList) { html += '</ul>'; inList = false; }
-            html += `<h3 class="text-base font-bold my-2 text-slate-600 dark:text-slate-300">${processInlineFormatting(h3Match[1])}</h3>`;
+            html += `<h3 class="text-base font-bold my-2">${processInlineFormatting(h3Match[1])}</h3>`;
         } else if (h2Match) {
             if (inList) { html += '</ul>'; inList = false; }
-            html += `<h2 class="text-lg font-bold my-2 text-slate-700 dark:text-slate-200">${processInlineFormatting(h2Match[1])}</h2>`;
+            html += `<h2 class="text-lg font-bold my-2">${processInlineFormatting(h2Match[1])}</h2>`;
         } else if (h1Match) {
             if (inList) { html += '</ul>'; inList = false; }
-            html += `<h1 class="text-xl font-bold my-3 text-slate-800 dark:text-slate-100">${processInlineFormatting(h1Match[1])}</h1>`;
+            html += `<h1 class="text-xl font-bold my-3">${processInlineFormatting(h1Match[1])}</h1>`;
         } else if (trimmedLine.startsWith('- ')) {
             if (!inList) {
                 html += '<ul class="list-disc list-inside space-y-1 my-2 pl-2">';
                 inList = true;
             }
-            html += `<li class="text-slate-700 dark:text-slate-300">${processInlineFormatting(trimmedLine.substring(2))}</li>`;
+            html += `<li>${processInlineFormatting(trimmedLine.substring(2))}</li>`;
         } else {
             if (inList) {
                 html += '</ul>';
                 inList = false;
             }
             if (trimmedLine) {
-                html += `<p class="my-2 text-slate-700 dark:text-slate-300">${processInlineFormatting(trimmedLine)}</p>`;
+                html += `<p class="my-2">${processInlineFormatting(trimmedLine)}</p>`;
             } else {
                  html += '<br />';
             }
