@@ -11,45 +11,50 @@ import {
 
 // Memoized component to render a single content block, preventing re-renders if the block data hasn't changed.
 const MemoizedContentBlock = React.memo(({ block }: { block: SummaryContent }) => {
-    const createMarkup = (content: string) => ({ __html: processInlineFormatting(content) });
-
     switch (block.type) {
-        case 'heading':
-            const cleanContent = block.content.replace(/^#+\s*/, '');
-            return <h2 className="text-xl font-bold mt-6 mb-2 text-medical-blue-light dark:text-medical-blue-dark" dangerouslySetInnerHTML={createMarkup(cleanContent)} />;
+        case 'heading': {
+            const contentWithoutEmoji = block.content.replace(/^[^\p{L}\p{N}]+\s*/u, '').trim();
+            const isMainHeading = contentWithoutEmoji.length > 0 && contentWithoutEmoji === contentWithoutEmoji.toUpperCase();
+
+            if (isMainHeading) {
+                return <h2 className="text-2xl font-bold mt-8 mb-3 text-medical-blue-light dark:text-medical-blue-dark" dangerouslySetInnerHTML={{ __html: processInlineFormatting(block.content) }} />;
+            } else {
+                return <h3 className="text-xl font-bold mt-6 mb-2 text-slate-800 dark:text-slate-100" dangerouslySetInnerHTML={{ __html: processInlineFormatting(block.content) }} />;
+            }
+        }
         case 'paragraph':
-            return <p className="mb-4 text-slate-700 dark:text-slate-300 leading-relaxed" dangerouslySetInnerHTML={createMarkup(block.content)} />;
+            return <p className="mb-4 text-slate-700 dark:text-slate-300 leading-relaxed" dangerouslySetInnerHTML={{ __html: processInlineFormatting(block.content) }} />;
         case 'tip':
             return (
                 <div className="my-4 p-4 bg-tip-yellow-light dark:bg-tip-yellow-dark rounded-lg border-l-4 border-yellow-400 dark:border-yellow-500">
                     <p className="font-semibold text-yellow-800 dark:text-yellow-200">💡 Mẹo</p>
-                    <p className="text-yellow-900 dark:text-yellow-100 mt-1" dangerouslySetInnerHTML={createMarkup(block.content)}></p>
+                    <div className="prose prose-sm dark:prose-invert max-w-none mt-1 [&>:first-child]:mt-0 [&>:last-child]:mb-0" dangerouslySetInnerHTML={{ __html: markdownToHtml(block.content) }} />
                 </div>
             );
         case 'warning':
              return (
                 <div className="my-4 p-4 bg-warning-red-light dark:bg-warning-red-dark rounded-lg border-l-4 border-red-400 dark:border-red-500">
                     <p className="font-semibold text-red-800 dark:text-red-200">⚠️ Cảnh báo</p>
-                    <p className="text-red-900 dark:text-red-100 mt-1" dangerouslySetInnerHTML={createMarkup(block.content)}></p>
+                    <div className="prose prose-sm dark:prose-invert max-w-none mt-1 [&>:first-child]:mt-0 [&>:last-child]:mb-0" dangerouslySetInnerHTML={{ __html: markdownToHtml(block.content) }} />
                 </div>
             );
         case 'example':
             return (
                 <div className="my-4 p-4 bg-slate-100 dark:bg-gray-700/50 rounded-lg">
                     <p className="font-semibold text-slate-600 dark:text-slate-300">Ví dụ lâm sàng</p>
-                    <p className="text-slate-700 dark:text-slate-300 mt-1 italic" dangerouslySetInnerHTML={createMarkup(block.content)}></p>
+                    <div className="prose prose-sm dark:prose-invert max-w-none mt-1 [&>:first-child]:mt-0 [&>:last-child]:mb-0" dangerouslySetInnerHTML={{ __html: markdownToHtml(block.content) }} />
                 </div>
             );
         case 'table':
             return (
                  <div className="my-6">
-                    {block.content && <h3 className="text-lg font-semibold mb-2" dangerouslySetInnerHTML={createMarkup(block.content)} />}
+                    {block.content && <h3 className="text-lg font-semibold mb-2" dangerouslySetInnerHTML={{ __html: processInlineFormatting(block.content) }} />}
                     <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-gray-700">
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs uppercase bg-slate-100 dark:bg-gray-700/50 text-slate-600 dark:text-slate-300">
                                 <tr>
                                     {block.tableData?.headers.map((header, hIndex) => (
-                                        <th key={hIndex} scope="col" className="px-4 py-3 font-semibold" dangerouslySetInnerHTML={createMarkup(header)}></th>
+                                        <th key={hIndex} scope="col" className="px-4 py-3 font-semibold" dangerouslySetInnerHTML={{ __html: processInlineFormatting(header) }}></th>
                                     ))}
                                 </tr>
                             </thead>
@@ -57,7 +62,7 @@ const MemoizedContentBlock = React.memo(({ block }: { block: SummaryContent }) =
                                 {block.tableData?.rows.map((row, rIndex) => (
                                     <tr key={rIndex} className="bg-white dark:bg-gray-800 hover:bg-slate-50 dark:hover:bg-gray-700/50 border-t border-slate-200 dark:border-gray-700">
                                         {row.map((cell, cIndex) => (
-                                            <td key={cIndex} className="px-4 py-2" dangerouslySetInnerHTML={createMarkup(cell)}></td>
+                                            <td key={cIndex} className="px-4 py-2" dangerouslySetInnerHTML={{ __html: processInlineFormatting(cell) }}></td>
                                         ))}
                                     </tr>
                                 ))}
