@@ -42,7 +42,9 @@ export interface FillInTheBlank {
 }
 
 export interface GlossaryItem {
-    term: string;
+    english: string;
+    german: string;
+    vietnamese: string;
     definition: string;
 }
 
