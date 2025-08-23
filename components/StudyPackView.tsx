@@ -10,7 +10,7 @@ import {
 } from './icons';
 
 // Memoized component to render a single content block, preventing re-renders if the block data hasn't changed.
-const MemoizedContentBlock = React.memo(({ block }: { block: SummaryContent }) => {
+const MemoizedContentBlock = React.memo(({ block, prevBlockType }: { block: SummaryContent; prevBlockType?: SummaryContent['type'] }) => {
     switch (block.type) {
         case 'heading': {
             const contentWithoutEmoji = block.content.replace(/^[^\p{L}\p{N}]+\s*/u, '').trim();
@@ -24,27 +24,33 @@ const MemoizedContentBlock = React.memo(({ block }: { block: SummaryContent }) =
         }
         case 'paragraph':
             return <p className="mb-4 text-slate-700 dark:text-slate-300 leading-relaxed" dangerouslySetInnerHTML={{ __html: processInlineFormatting(block.content) }} />;
-        case 'tip':
+        case 'tip': {
+            const showHeader = block.type !== prevBlockType;
             return (
-                <div className="my-4 p-4 bg-tip-yellow-light dark:bg-tip-yellow-dark rounded-lg border-l-4 border-yellow-400 dark:border-yellow-500">
-                    <p className="font-semibold text-yellow-800 dark:text-yellow-200">💡 Mẹo</p>
-                    <div className="prose prose-sm dark:prose-invert max-w-none mt-1 [&>:first-child]:mt-0 [&>:last-child]:mb-0" dangerouslySetInnerHTML={{ __html: markdownToHtml(block.content) }} />
+                <div className={`my-4 rounded-lg border-l-4 border-yellow-400 dark:border-yellow-500 bg-tip-yellow-light dark:bg-tip-yellow-dark ${showHeader ? 'p-4' : 'px-4 pb-4 pt-2'}`}>
+                    {showHeader && <p className="font-semibold text-yellow-800 dark:text-yellow-200">💡 Mẹo</p>}
+                    <div className={`prose prose-sm dark:prose-invert max-w-none [&>:first-child]:mt-0 [&>:last-child]:mb-0 ${showHeader ? 'mt-1' : ''}`} dangerouslySetInnerHTML={{ __html: markdownToHtml(block.content) }} />
                 </div>
             );
-        case 'warning':
+        }
+        case 'warning': {
+             const showHeader = block.type !== prevBlockType;
              return (
-                <div className="my-4 p-4 bg-warning-red-light dark:bg-warning-red-dark rounded-lg border-l-4 border-red-400 dark:border-red-500">
-                    <p className="font-semibold text-red-800 dark:text-red-200">⚠️ Cảnh báo</p>
-                    <div className="prose prose-sm dark:prose-invert max-w-none mt-1 [&>:first-child]:mt-0 [&>:last-child]:mb-0" dangerouslySetInnerHTML={{ __html: markdownToHtml(block.content) }} />
+                <div className={`my-4 rounded-lg border-l-4 border-red-400 dark:border-red-500 bg-warning-red-light dark:bg-warning-red-dark ${showHeader ? 'p-4' : 'px-4 pb-4 pt-2'}`}>
+                    {showHeader && <p className="font-semibold text-red-800 dark:text-red-200">⚠️ Cảnh báo</p>}
+                    <div className={`prose prose-sm dark:prose-invert max-w-none [&>:first-child]:mt-0 [&>:last-child]:mb-0 ${showHeader ? 'mt-1' : ''}`} dangerouslySetInnerHTML={{ __html: markdownToHtml(block.content) }} />
                 </div>
             );
-        case 'example':
+        }
+        case 'example': {
+            const showHeader = block.type !== prevBlockType;
             return (
-                <div className="my-4 p-4 bg-slate-100 dark:bg-gray-700/50 rounded-lg">
-                    <p className="font-semibold text-slate-600 dark:text-slate-300">Ví dụ lâm sàng</p>
-                    <div className="prose prose-sm dark:prose-invert max-w-none mt-1 [&>:first-child]:mt-0 [&>:last-child]:mb-0" dangerouslySetInnerHTML={{ __html: markdownToHtml(block.content) }} />
+                <div className={`my-4 rounded-lg bg-slate-100 dark:bg-gray-700/50 ${showHeader ? 'p-4' : 'px-4 pb-4 pt-2'}`}>
+                    {showHeader && <p className="font-semibold text-slate-600 dark:text-slate-300">Ví dụ lâm sàng</p>}
+                    <div className={`prose prose-sm dark:prose-invert max-w-none [&>:first-child]:mt-0 [&>:last-child]:mb-0 ${showHeader ? 'mt-1' : ''}`} dangerouslySetInnerHTML={{ __html: markdownToHtml(block.content) }} />
                 </div>
             );
+        }
         case 'table':
             return (
                  <div className="my-6">
@@ -79,7 +85,11 @@ const MemoizedContentBlock = React.memo(({ block }: { block: SummaryContent }) =
 const SummaryView = ({ lesson }: { lesson: SummaryContent[] }) => {
     return (
         <div className="prose dark:prose-invert max-w-none">
-            {lesson.map((block, index) => <MemoizedContentBlock key={index} block={block} />)}
+            {lesson.map((block, index) => {
+                const prevBlock = index > 0 ? lesson[index - 1] : null;
+                const prevBlockType = prevBlock ? prevBlock.type : undefined;
+                return <MemoizedContentBlock key={index} block={block} prevBlockType={prevBlockType} />
+            })}
         </div>
     );
 };
