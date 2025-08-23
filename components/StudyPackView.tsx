@@ -51,10 +51,11 @@ const MemoizedContentBlock = React.memo(({ block, prevBlockType }: { block: Summ
                 </div>
             );
         }
-        case 'table':
+        case 'table': {
+            const isInvalidTitle = block.content && /^(headers|tabledata|rows)$/i.test(block.content.trim());
             return (
                  <div className="my-6">
-                    {block.content && <h3 className="text-lg font-semibold mb-2" dangerouslySetInnerHTML={{ __html: processInlineFormatting(block.content) }} />}
+                    {block.content && !isInvalidTitle && <h3 className="text-lg font-semibold mb-2" dangerouslySetInnerHTML={{ __html: processInlineFormatting(block.content) }} />}
                     <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-gray-700">
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs uppercase bg-slate-100 dark:bg-gray-700/50 text-slate-600 dark:text-slate-300">
@@ -77,6 +78,7 @@ const MemoizedContentBlock = React.memo(({ block, prevBlockType }: { block: Summ
                     </div>
                 </div>
             )
+        }
         default:
             return null;
     }

@@ -517,7 +517,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
         {showTips && renderTipsBox()}
 
         <div className="mb-10">
-            <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100 border-b-2 border-slate-200 dark:border-gray-700 pb-2">Gói học tập</h2>
+            <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100">Gói học tập</h2>
             {rootPacks.length === 0 ? (
                 <div className="text-center py-12 px-6 bg-slate-50 dark:bg-gray-800/50 rounded-xl border-2 border-dashed border-slate-300 dark:border-gray-600">
                     <BookOpenIcon className="w-12 h-12 mx-auto text-slate-400 mb-2" />
@@ -532,7 +532,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
         </div>
 
         <div>
-            <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100 border-b-2 border-slate-200 dark:border-gray-700 pb-2">Thư mục</h2>
+            <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100">Thư mục</h2>
             {rootFolders.length === 0 ? (
                  <div className="text-center py-12 px-6 bg-slate-50 dark:bg-gray-800/50 rounded-xl border-2 border-dashed border-slate-300 dark:border-gray-600">
                     <FolderIcon className="w-12 h-12 mx-auto text-slate-400 mb-2" />
