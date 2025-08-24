@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { UserData, StudyPack, BadgeId, QuizDifficulty, Folder, ChatMessage, QuizSession, LearningMode, SubmittedAnswer } from '../types';
@@ -247,14 +248,12 @@ export const useUserStore = create<UserState & UserActions>()(
                             reader.onerror = error => reject(error);
                         });
                         serviceSource.file = { data: base64Data, mimeType: source.file.type };
-                    }
-                    if (source.text?.trim()) {
-                        serviceSource.text = source.text.trim();
-                    }
+                        if (source.text?.trim()) serviceSource.text = source.text.trim();
+                    } else { serviceSource.text = source.text?.trim(); }
                     
+                    const packId = `pack_${Date.now()}`;
                     const generatedContent = await createStudyPackService(serviceSource);
 
-                    const packId = `pack_${Date.now()}`;
                     const randomColor = PACK_COLORS[Math.floor(Math.random() * PACK_COLORS.length)].key;
                     const availableIcons = Object.keys(ICON_MAP).filter(key => key !== 'default');
                     const randomIcon = availableIcons[Math.floor(Math.random() * availableIcons.length)];
@@ -275,8 +274,7 @@ export const useUserStore = create<UserState & UserActions>()(
                     handleActivity();
                     return true;
                 } catch (err) {
-                    console.error("Lỗi trong createStudyPack store:", err);
-                    // Lỗi đã được hiển thị bởi `apiRequest` trong service
+                    console.error(err);
                     return false;
                 } finally { set({ isGenerating: false }); }
             },
@@ -522,7 +520,7 @@ export const useUserStore = create<UserState & UserActions>()(
                 set({ isGenerating: true });
                 try {
                     const context = pack.lesson.map(b => b.content).join('\n');
-                    const existingQuestions = isM2Style ? (pack.m2StaatexamQuiz || []) : pack.quiz;
+                    const existingQuestions = isM2Style ? (pack.m2StaatexamQuiz || []) : (pack.quiz || []);
                     const newQuestionsData = await generateMoreQuestionsService(context, existingQuestions, isM2Style);
 
                     if (newQuestionsData.length > 0) {
@@ -565,7 +563,7 @@ export const useUserStore = create<UserState & UserActions>()(
                     }
                 } catch (error) {
                     console.error("Error generating more questions:", error);
-                    // Lỗi đã được hiển thị bởi `apiRequest` trong service
+                    useUIStore.getState().showToast("Lỗi: Không thể tạo thêm câu hỏi.");
                 } finally {
                     set({ isGenerating: false });
                 }
