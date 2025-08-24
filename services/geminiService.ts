@@ -71,14 +71,21 @@ export const generateMoreQuestions = async (context: string, existingQuestions: 
         const response = await fetch(`${BACKEND_URL}/api/generate-questions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ context, existingQuestions }),
+            body: JSON.stringify({ context, existingQuestions, isM2Style}),
         });
          if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || 'Lỗi không xác định từ máy chủ.');
         }
         const data = await response.json();
-        return data.questions;
+        const newQuestions = data.new_questions;
+
+        if (Array.isArray(newQuestions)) {
+            return newQuestions.filter(q => q && q.question && Array.isArray(q.options));
+        }
+
+        console.warn("API for generating questions returned an unexpected format:", data);
+        return [];
     } catch (error) {
         console.error("Lỗi khi gọi backend (generateMoreQuestions):", error);
         useUIStore.getState().showToast(`Lỗi: ${error.message}`);
