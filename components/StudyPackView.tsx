@@ -719,7 +719,7 @@ const GlossaryView = ({ items }: { items: Types.GlossaryItem[] }) => {
                     <dt>
                         <p className="font-bold text-lg text-brand-primary dark:text-brand-secondary">{item.english}</p>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                            <span className="font-semibold">DE:</span> {item.german} &bull; <span className="font-semibold">VI:</span> {item.vietnamese}
+                            <span className="font-semibold">DE:</span> {item.german} | <span className="font-semibold">VI:</span> {item.vietnamese}
                         </p>
                     </dt>
                     <dd className="mt-2 text-slate-600 dark:text-slate-300">{item.definition}</dd>
