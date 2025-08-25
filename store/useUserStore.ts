@@ -575,7 +575,7 @@ export const useUserStore = create<UserState & UserActions>()(
                     return { tutorState: 'open', tutorMessages: messages };
                 });
             },
-            closeTutor: () => set({ tutorState: 'closed', tutorContext: undefined }),
+            closeTutor: () => set({ tutorState: 'closed', tutorContext: undefined, tutorMessages: [] }),
             minimizeTutor: () => set({ tutorState: 'minimized' }),
             toggleTutorSize: () => set(state => ({ tutorState: state.tutorState === 'maximized' ? 'open' : 'maximized' })),
             
@@ -651,7 +651,10 @@ export const useUserStore = create<UserState & UserActions>()(
                 const deletionTimestamp = new Date().toISOString();
 
                 const calculateXpForPack = (pack: StudyPack) => {
-                    let packXp = 0;
+                    let packXp = XP_ACTIONS.CREATE_PACK;
+                    if (pack.hasBeenCustomized) {
+                        packXp += XP_ACTIONS.PERSONAL_TOUCH;
+                    }
                     const allQuestionsInPack = [...(pack.quiz || []), ...(pack.m2StaatexamQuiz || [])];
                     for (const question of allQuestionsInPack) {
                         if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
@@ -705,7 +708,10 @@ export const useUserStore = create<UserState & UserActions>()(
                 let xpToRestore = 0;
 
                 const calculateXpForPack = (pack: StudyPack) => {
-                    let packXp = 0;
+                    let packXp = XP_ACTIONS.CREATE_PACK;
+                    if (pack.hasBeenCustomized) {
+                        packXp += XP_ACTIONS.PERSONAL_TOUCH;
+                    }
                     const allQuestionsInPack = [...(pack.quiz || []), ...(pack.m2StaatexamQuiz || [])];
                     for (const question of allQuestionsInPack) {
                         if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
@@ -820,7 +826,10 @@ export const useUserStore = create<UserState & UserActions>()(
                 let totalXpToRestore = 0;
 
                 const calculateXpForPack = (pack: StudyPack) => {
-                    let packXp = 0;
+                    let packXp = XP_ACTIONS.CREATE_PACK;
+                    if (pack.hasBeenCustomized) {
+                        packXp += XP_ACTIONS.PERSONAL_TOUCH;
+                    }
                     const allQuestionsInPack = [...(pack.quiz || []), ...(pack.m2StaatexamQuiz || [])];
                     for (const question of allQuestionsInPack) {
                         if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
