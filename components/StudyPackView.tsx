@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import * as Types from '../types';
-import { StudyPack, LearningMode, SummaryContent, QuizDifficulty, ChatMessage, QuizSession, SubmittedAnswer } from '../types';
+import { StudyPack, LearningMode, SummaryContent, QuizDifficulty, ChatMessage, QuizSession, SubmittedAnswer, PowerUpId } from '../types';
 import { useUserStore } from '../store/useUserStore';
-import { XP_ACTIONS, PACK_COLORS } from '../constants';
+import { XP_ACTIONS, PACK_COLORS, POWER_UPS_DATA } from '../constants';
 import { processInlineFormatting, markdownToHtml } from '../utils/markdown';
 import { 
     ArrowLeftIcon, BookOpenIcon, ClipboardListIcon, PencilIcon, AcademicCapIcon, FireIcon, CheckCircleIcon, XCircleIcon, ChatAlt2Icon, 
@@ -113,7 +113,7 @@ const ConciseSummaryView = ({ summary }: { summary: string }) => {
 
 
 const QuizView = ({ pack }: { pack: StudyPack; }) => {
-    const { handleQuizAnswer, generateMoreQuestions, updateStudyPack, setTutorContextAndOpen, handleQuizComplete } = useUserStore.getState();
+    const { handleQuizAnswer, generateMoreQuestions, updateStudyPack, setTutorContextAndOpen, handleQuizComplete, inventory, usePowerUp } = useUserStore.getState();
     const isGenerating = useUserStore(state => state.isGenerating);
 
     const session: QuizSession = useMemo(() => (
@@ -130,6 +130,7 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
     const [showResults, setShowResults] = useState(false);
     const [isReviewing, setIsReviewing] = useState(false);
     const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
+    const [optionsToRemove, setOptionsToRemove] = useState<string[]>([]);
     
     // This effect runs whenever the active set of questions changes, which can happen
     // after generating new questions or when retrying incorrect ones. Its purpose is
@@ -161,6 +162,7 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
 
     useEffect(() => {
         setSelectedAnswers([]);
+        setOptionsToRemove([]);
     }, [currentQuestion?.uniqueId]);
 
     const handleAnswerSubmit = (selected: string[]) => {
@@ -185,6 +187,19 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
         if (selectedAnswers.length > 0) handleAnswerSubmit(selectedAnswers);
     };
     
+    const handleUseFiftyFifty = () => {
+        if (!currentQuestion || optionsToRemove.length > 0) return;
+        usePowerUp(PowerUpId.FIFTY_FIFTY);
+
+        const incorrectOptions = currentQuestion.options.filter(
+            opt => !currentQuestion.correctAnswers.includes(opt)
+        );
+        
+        // Shuffle and pick two to remove
+        const shuffled = incorrectOptions.sort(() => 0.5 - Math.random());
+        setOptionsToRemove(shuffled.slice(0, 2));
+    };
+
     const navigateQuestion = (direction: 'next' | 'prev') => {
         if (direction === 'next' && session.currentQuestionIndex === questions.length - 1) {
             setShowResults(true);
@@ -329,6 +344,9 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
         return <p>Không có câu hỏi nào để hiển thị.</p>
     }
 
+    const fiftyFiftyCount = inventory[PowerUpId.FIFTY_FIFTY] || 0;
+    const canUseFiftyFifty = fiftyFiftyCount > 0 && !submittedAnswer && optionsToRemove.length === 0 && (currentQuestion.options.length - currentQuestion.correctAnswers.length) >= 2;
+    
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
@@ -341,6 +359,8 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
             </p>
             <div className="space-y-3">
                 {currentQuestion.options.map((option, index) => {
+                    if (optionsToRemove.includes(option)) return null;
+
                     const isSelected = submittedAnswer ? submittedAnswer.selectedAnswers.includes(option) : selectedAnswers.includes(option);
                     const isCorrectAnswer = currentQuestion.correctAnswers.includes(option);
                     let buttonClass = 'w-full text-left p-4 rounded-lg border-2 transition-colors flex items-center justify-between ';
@@ -390,23 +410,33 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
                      {session.currentQuestionIndex === questions.length - 1 ? 'Hoàn thành' : 'Tiếp theo'}
                 </button>
             </div>
-            <div className="mt-12 pt-6 border-t border-slate-200 dark:border-gray-700">
-                <h3 className="font-bold text-lg mb-2">Thêm câu hỏi?</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">Sử dụng AI để tạo thêm các câu hỏi trắc nghiệm dựa trên nội dung bài học.</p>
-                <button onClick={() => generateMoreQuestions(pack.id, false)} disabled={isGenerating} className="px-5 py-2 flex items-center gap-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 font-semibold disabled:opacity-60">
-                     {isGenerating ? (
-                        <><div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div><span>Đang tạo...</span></>
-                    ) : (
-                        <><SparklesIcon className="w-5 h-5"/><span>Tạo thêm 5 câu hỏi</span></>
-                     )}
-                </button>
+            <div className="mt-12 pt-6 border-t border-slate-200 dark:border-gray-700 flex justify-between items-start">
+                 <div>
+                    <h3 className="font-bold text-lg mb-2">Thêm câu hỏi?</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">Sử dụng AI để tạo thêm các câu hỏi trắc nghiệm dựa trên nội dung bài học.</p>
+                    <button onClick={() => generateMoreQuestions(pack.id, false)} disabled={isGenerating} className="px-5 py-2 flex items-center gap-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 font-semibold disabled:opacity-60">
+                         {isGenerating ? (
+                            <><div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div><span>Đang tạo...</span></>
+                        ) : (
+                            <><SparklesIcon className="w-5 h-5"/><span>Tạo thêm 5 câu hỏi</span></>
+                         )}
+                    </button>
+                </div>
+                 <div>
+                    <h3 className="font-bold text-lg mb-2">Vật phẩm hỗ trợ</h3>
+                     <button onClick={handleUseFiftyFifty} disabled={!canUseFiftyFifty} className="px-4 py-2 flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-gray-700/50 hover:bg-slate-200 dark:hover:bg-gray-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed group">
+                        {React.cloneElement(POWER_UPS_DATA[PowerUpId.FIFTY_FIFTY].icon, {className: "w-5 h-5"})}
+                        <span>50:50</span>
+                        <span className="text-xs font-bold bg-slate-300 dark:bg-gray-600 group-disabled:bg-slate-200 dark:group-disabled:bg-gray-700 rounded-full px-2 py-0.5">{fiftyFiftyCount}</span>
+                    </button>
+                </div>
             </div>
         </div>
     );
 };
 
 const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
-    const { handleM2StaatexamQuizAnswer, generateMoreQuestions, updateStudyPack, setTutorContextAndOpen, handleM2StaatexamQuizComplete } = useUserStore.getState();
+    const { handleM2StaatexamQuizAnswer, generateMoreQuestions, updateStudyPack, setTutorContextAndOpen, handleM2StaatexamQuizComplete, inventory, usePowerUp } = useUserStore.getState();
     const isGenerating = useUserStore(state => state.isGenerating);
     
     const questions = pack.m2StaatexamQuiz || [];
@@ -425,6 +455,7 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
     const [showResults, setShowResults] = useState(false);
     const [isReviewing, setIsReviewing] = useState(false);
     const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
+    const [optionsToRemove, setOptionsToRemove] = useState<string[]>([]);
     
     useEffect(() => {
         setShowResults(false);
@@ -452,6 +483,7 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
 
     useEffect(() => {
         setSelectedAnswers([]);
+        setOptionsToRemove([]);
     }, [currentQuestion?.uniqueId]);
 
     const handleAnswerSubmit = (selected: string[]) => {
@@ -470,11 +502,15 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
             );
         }
     };
-
-    const handleMultiChoiceSubmit = () => {
-        if (selectedAnswers.length > 0) handleAnswerSubmit(selectedAnswers);
-    };
     
+    const handleUseFiftyFifty = () => {
+        if (!currentQuestion || optionsToRemove.length > 0) return;
+        usePowerUp(PowerUpId.FIFTY_FIFTY);
+        const incorrectOptions = currentQuestion.options.filter(opt => !currentQuestion.correctAnswers.includes(opt));
+        const shuffled = incorrectOptions.sort(() => 0.5 - Math.random());
+        setOptionsToRemove(shuffled.slice(0, 2));
+    };
+
     const navigateQuestion = (direction: 'next' | 'prev') => {
         if (direction === 'next' && session.currentQuestionIndex === activeQuestions.length - 1) {
             setShowResults(true);
@@ -609,6 +645,9 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
         return <p>Không có câu hỏi nào để hiển thị.</p>
     }
 
+    const fiftyFiftyCount = inventory[PowerUpId.FIFTY_FIFTY] || 0;
+    const canUseFiftyFifty = fiftyFiftyCount > 0 && !submittedAnswer && optionsToRemove.length === 0 && (currentQuestion.options.length - currentQuestion.correctAnswers.length) >= 2;
+
     return (
         <div>
             <div className="flex justify-between items-center mb-4">
@@ -617,11 +656,11 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
             </div>
             <div className="text-lg font-semibold mb-6 prose prose-base dark:prose-invert max-w-none">
                  <div dangerouslySetInnerHTML={{ __html: formattedQuestion }} />
-                 {currentQuestion.type === 'multiple-choice' && <span className="text-sm font-normal text-slate-500 dark:text-slate-400 ml-2">(Chọn nhiều đáp án)</span>}
             </div>
             <div className="space-y-3">
                 {currentQuestion.options.map((option, index) => {
-                    const isSelected = submittedAnswer ? submittedAnswer.selectedAnswers.includes(option) : selectedAnswers.includes(option);
+                    if (optionsToRemove.includes(option)) return null;
+                    const isSelected = submittedAnswer ? submittedAnswer.selectedAnswers.includes(option) : false;
                     const isCorrectAnswer = currentQuestion.correctAnswers.includes(option);
                     let buttonClass = 'w-full text-left p-4 rounded-lg border-2 transition-colors flex items-center justify-between ';
                     if (submittedAnswer) {
@@ -629,7 +668,7 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
                         else if (isSelected && !isCorrectAnswer) buttonClass += 'bg-red-100 dark:bg-red-900/50 border-red-500 text-red-800 dark:text-red-200';
                         else buttonClass += 'bg-slate-100 dark:bg-gray-700 border-transparent';
                     } else {
-                         buttonClass += isSelected ? 'bg-blue-100 dark:bg-blue-900/50 border-brand-primary' : 'bg-white dark:bg-gray-800 border-slate-300 dark:border-gray-600 hover:border-brand-primary dark:hover:border-brand-secondary';
+                         buttonClass += 'bg-white dark:bg-gray-800 border-slate-300 dark:border-gray-600 hover:border-brand-primary dark:hover:border-brand-secondary';
                     }
                     return (
                         <button key={index} onClick={() => handleOptionClick(option)} disabled={!!submittedAnswer} className={buttonClass}>
@@ -640,11 +679,6 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
                     )
                 })}
             </div>
-             {currentQuestion.type === 'multiple-choice' && !submittedAnswer && (
-                <div className="mt-6 text-right">
-                    <button onClick={handleMultiChoiceSubmit} disabled={selectedAnswers.length === 0} className="px-6 py-2 bg-brand-primary text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed">Kiểm tra</button>
-                </div>
-            )}
             {submittedAnswer && (
                  <div className={`mt-6 p-4 rounded-lg ${submittedAnswer.isCorrect ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/30'}`}>
                     <div className="flex items-start gap-2">
@@ -667,16 +701,26 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
                      {session.currentQuestionIndex === activeQuestions.length - 1 ? 'Hoàn thành' : 'Tiếp theo'}
                 </button>
             </div>
-            <div className="mt-12 pt-6 border-t border-slate-200 dark:border-gray-700">
-                <h3 className="font-bold text-lg mb-2">Thêm câu hỏi?</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">Sử dụng AI để tạo thêm các câu hỏi trắc nghiệm theo phong cách M2 staatexam dựa trên nội dung bài học.</p>
-                <button onClick={() => generateMoreQuestions(pack.id, true)} disabled={isGenerating} className="px-5 py-2 flex items-center gap-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 font-semibold disabled:opacity-60">
-                     {isGenerating ? (
-                        <><div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div><span>Đang tạo...</span></>
-                    ) : (
-                        <><SparklesIcon className="w-5 h-5"/><span>Tạo thêm 5 câu hỏi</span></>
-                     )}
-                </button>
+             <div className="mt-12 pt-6 border-t border-slate-200 dark:border-gray-700 flex justify-between items-start">
+                 <div>
+                    <h3 className="font-bold text-lg mb-2">Thêm câu hỏi?</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">Sử dụng AI để tạo thêm các câu hỏi trắc nghiệm theo phong cách M2 staatexam dựa trên nội dung bài học.</p>
+                    <button onClick={() => generateMoreQuestions(pack.id, true)} disabled={isGenerating} className="px-5 py-2 flex items-center gap-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 font-semibold disabled:opacity-60">
+                         {isGenerating ? (
+                            <><div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div><span>Đang tạo...</span></>
+                        ) : (
+                            <><SparklesIcon className="w-5 h-5"/><span>Tạo thêm 5 câu hỏi</span></>
+                         )}
+                    </button>
+                </div>
+                <div>
+                    <h3 className="font-bold text-lg mb-2">Vật phẩm hỗ trợ</h3>
+                     <button onClick={handleUseFiftyFifty} disabled={!canUseFiftyFifty} className="px-4 py-2 flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-gray-700/50 hover:bg-slate-200 dark:hover:bg-gray-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed group">
+                        {React.cloneElement(POWER_UPS_DATA[PowerUpId.FIFTY_FIFTY].icon, {className: "w-5 h-5"})}
+                        <span>50:50</span>
+                        <span className="text-xs font-bold bg-slate-300 dark:bg-gray-600 group-disabled:bg-slate-200 dark:group-disabled:bg-gray-700 rounded-full px-2 py-0.5">{fiftyFiftyCount}</span>
+                    </button>
+                </div>
             </div>
         </div>
     );

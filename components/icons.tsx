@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 
 const Icon = ({ path, className = 'w-6 h-6', viewBox = '0 0 24 24' }: { path: string; className?: string; viewBox?: string; }) => (
@@ -53,6 +51,11 @@ export const UsersIcon = ({ className }: { className?: string }) => <IconOutline
 export const ClockIcon = ({ className }: { className?: string }) => <IconOutline className={className} path="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />;
 export const StarIcon = ({ className }: { className?: string }) => <IconOutline className={className} path="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />;
 export const BoltIcon = ({ className }: { className?: string }) => <IconOutline className={className} path="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />;
+export const CoinIcon = ({ className }: { className?: string }) => <Icon className={className} viewBox="0 0 20 20" path="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v8a1 1 0 102 0V7zM8 8a1 1 0 000 2h4a1 1 0 100-2H8z" />;
+export const ShoppingCartIcon = ({ className }: { className?: string }) => <IconOutline className={className} path="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c.51 0 .962-.328 1.093-.828l3.125-9.375a.75.75 0 00-1.436-.484L17.342 8.25H5.106L4.47 3.375A.75.75 0 003.75 3H2.25a.75.75 0 000 1.5h.563l3.438 12.746A1.5 1.5 0 008.001 18h8.998a1.5 1.5 0 001.492-1.321l.332-1.168A1.5 1.5 0 0017.625 14.25H7.5z" />;
+export const ClipboardCheckIcon = ({ className }: { className?: string }) => <IconOutline className={className} path="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a3.375 3.375 0 013.375 3.375v.375m0 0c0 .621.504 1.125 1.125 1.125h.375a3.375 3.375 0 003.375-3.375v-.375M10.125 2.25c0 .621.504 1.125 1.125 1.125h.375c.621 0 1.125-.504 1.125-1.125v-.375c0-.621-.504-1.125-1.125-1.125h-.375A1.125 1.125 0 0010.125 2.25zM14.25 15.75l1.5 1.5 3-3" />;
+export const ScaleIcon = ({ className }: { className?: string }) => <IconOutline className={className} path="M12 3a.75.75 0 01.75.75v16.5a.75.75 0 01-1.5 0V3.75A.75.75 0 0112 3zM3.75 7.5a2.25 2.25 0 00-2.25 2.25v3.75a2.25 2.25 0 002.25 2.25h16.5a2.25 2.25 0 002.25-2.25V9.75a2.25 2.25 0 00-2.25-2.25H3.75z" />;
+
 
 export const FolderIcon = ({ className }: { className?: string }) => <IconOutline className={className} path="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />;
 export const FolderPlusIcon = ({ className }: { className?: string }) => <IconOutline className={className} path="M12 10.5v6m3-3h-6m2.25-4.5c0-.621.504-1.125 1.125-1.125H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25-2.25H4.5a2.25 2.25 0 01-2.25-2.25V6.75a2.25 2.25 0 012.25-2.25h.625a1.125 1.125 0 001.125-1.125v-1.5c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h.625a2.25 2.25 0 012.25 2.25v6.75a2.25 2.25 0 01-2.25-2.25H6.75a2.25 2.25 0 01-2.25-2.25V6.75z" />;

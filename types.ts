@@ -144,10 +144,48 @@ export interface ChatMessage {
     text: string;
 }
 
+export enum PowerUpId {
+    FIFTY_FIFTY = 'FIFTY_FIFTY',
+}
+
+export interface PowerUp {
+    id: PowerUpId;
+    name: string;
+    description: string;
+    price: number;
+    icon: ReactElement<{ className?: string }>;
+}
+
+export enum QuestType {
+    DAILY = 'DAILY',
+    WEEKLY = 'WEEKLY'
+}
+
+export enum QuestCategory {
+    CREATE_PACK = 'CREATE_PACK',
+    ANSWER_CORRECTLY = 'ANSWER_CORRECTLY',
+    EARN_XP = 'EARN_XP',
+    MAINTAIN_STREAK = 'MAINTAIN_STREAK',
+    COMPLETE_QUIZ = 'COMPLETE_QUIZ',
+}
+
+export interface Quest {
+    id: string;
+    type: QuestType;
+    category: QuestCategory;
+    description: string;
+    target: number;
+    xpReward: number;
+    coinReward: number;
+    progress: number;
+    claimed: boolean;
+}
+
 export interface UserData {
     name: string;
     level: number;
     xp: number;
+    stethoCoins: number;
     streak: number;
     unlockedBadges: BadgeId[];
     studyPacks: StudyPack[];
@@ -162,5 +200,11 @@ export interface UserData {
         count: number;
         date: string; 
         limitNotified?: boolean;
+    };
+    inventory: Partial<Record<PowerUpId, number>>;
+    activeQuests: Quest[];
+    lastQuestRefresh: {
+        daily: string;
+        weekly: string;
     };
 }

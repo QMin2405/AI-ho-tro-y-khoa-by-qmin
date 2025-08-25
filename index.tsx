@@ -14,6 +14,8 @@ import { StreakModal } from './components/modals/StreakModal';
 import { TrashModal } from './components/modals/TrashModal';
 import { ConfirmModal } from './components/modals/ConfirmModal';
 import { ToastNotification } from './components/ui/ToastNotification';
+import { ShopModal } from './components/modals/ShopModal';
+import { QuestsModal } from './components/modals/QuestsModal';
 
 const App = () => {
     // UI state that's local to the App shell
@@ -28,10 +30,14 @@ const App = () => {
     const [isXpModalOpen, setIsXpModalOpen] = useState(false);
     const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
     const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
+    const [isShopModalOpen, setIsShopModalOpen] = useState(false);
+    const [isQuestsModalOpen, setIsQuestsModalOpen] = useState(false);
+
 
     // Get state and actions from stores
     const checkDailyStreak = useUserStore(state => state.checkDailyStreak);
     const autoCleanupTrash = useUserStore(state => state.autoCleanupTrash);
+    const refreshQuests = useUserStore(state => state.refreshQuests);
     const isLoggedIn = useUserStore(state => state.isLoggedIn);
     
     // UI store for global components like toasts and confirm modals
@@ -52,12 +58,15 @@ const App = () => {
         
         // Cleanup trash on app start
         autoCleanupTrash();
+        
+        // Refresh quests
+        refreshQuests();
 
         // When the app loads and we know if the user is logged in, check their streak
         if (isLoggedIn) {
              checkDailyStreak();
         }
-    }, [isLoggedIn, checkDailyStreak, autoCleanupTrash]);
+    }, [isLoggedIn, checkDailyStreak, autoCleanupTrash, refreshQuests]);
     
     // Effect to check badges whenever user data changes
     useEffect(() => {
@@ -104,6 +113,8 @@ const App = () => {
                 onXpBarClick={() => setIsXpModalOpen(true)}
                 onHomeClick={handleBackToHome}
                 isAtHome={isAtHome}
+                onShopClick={() => setIsShopModalOpen(true)}
+                onQuestsClick={() => setIsQuestsModalOpen(true)}
             />
             <main className="flex-grow">
                 {activeView === 'dashboard' && (
@@ -154,6 +165,18 @@ const App = () => {
                 <TrashModal
                     isOpen={isTrashModalOpen}
                     onClose={() => setIsTrashModalOpen(false)}
+                />
+            )}
+            {isShopModalOpen && (
+                <ShopModal
+                    isOpen={isShopModalOpen}
+                    onClose={() => setIsShopModalOpen(false)}
+                />
+            )}
+            {isQuestsModalOpen && (
+                <QuestsModal
+                    isOpen={isQuestsModalOpen}
+                    onClose={() => setIsQuestsModalOpen(false)}
                 />
             )}
             

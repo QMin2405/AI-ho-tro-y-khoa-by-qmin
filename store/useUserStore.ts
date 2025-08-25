@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { UserData, StudyPack, BadgeId, QuizDifficulty, Folder, ChatMessage, QuizSession, LearningMode, SubmittedAnswer } from '../types';
-import { BADGES_DATA, XP_ACTIONS, QUIZ_DIFFICULTY_POINTS, QUIZ_COMBO_BONUS, HOT_STREAK_THRESHOLD, INQUISITIVE_MIND_THRESHOLD, CONTENT_CURATOR_THRESHOLD, ARCHITECT_THRESHOLD, KNOWLEDGE_LIBRARY_THRESHOLD, INNOVATOR_THRESHOLD, AI_PARTNER_THRESHOLD, LIVING_LEGEND_THRESHOLD, XP_EARNER_1_THRESHOLD, STEEL_BRAIN_THRESHOLD, CONQUEROR_THRESHOLD, PACK_COLORS } from '../constants';
+import { UserData, StudyPack, BadgeId, QuizDifficulty, Folder, ChatMessage, QuizSession, LearningMode, SubmittedAnswer, PowerUpId, Quest, QuestType, QuestCategory } from '../types';
+import { BADGES_DATA, XP_ACTIONS, COIN_ACTIONS, QUIZ_DIFFICULTY_POINTS, QUIZ_COMBO_BONUS, HOT_STREAK_THRESHOLD, INQUISITIVE_MIND_THRESHOLD, CONTENT_CURATOR_THRESHOLD, ARCHITECT_THRESHOLD, KNOWLEDGE_LIBRARY_THRESHOLD, INNOVATOR_THRESHOLD, AI_PARTNER_THRESHOLD, LIVING_LEGEND_THRESHOLD, XP_EARNER_1_THRESHOLD, STEEL_BRAIN_THRESHOLD, CONQUEROR_THRESHOLD, PACK_COLORS, POWER_UPS_DATA, QUEST_TEMPLATES } from '../constants';
 import { createStudyPack as createStudyPackService, askTutor, generateMoreQuestions as generateMoreQuestionsService } from '../services/geminiService';
 import { useUIStore } from './useUIStore';
-import { exportUserData } from '../utils/helpers';
+import { exportUserData, getLevelInfo } from '../utils/helpers';
 import { ICON_MAP } from '../components/icons';
 
 const LOCAL_STORAGE_KEY = 'smartMedTutorUserData';
@@ -14,6 +14,7 @@ const initialUserData: UserData = {
     name: DEFAULT_USER_NAME,
     level: 1,
     xp: 0,
+    stethoCoins: 500, // Start with some coins to use the shop
     streak: 0,
     unlockedBadges: [],
     studyPacks: [],
@@ -24,6 +25,12 @@ const initialUserData: UserData = {
     generatedQuestionCount: 0,
     totalCorrectAnswers: 0,
     perfectQuizCompletions: 0,
+    inventory: {},
+    activeQuests: [],
+    lastQuestRefresh: {
+        daily: new Date(0).toISOString().split('T')[0],
+        weekly: new Date(0).toISOString().split('T')[0],
+    },
     tutorXpGainsToday: { count: 0, date: new Date(0).toISOString().split('T')[0], limitNotified: false },
 };
 
@@ -44,6 +51,7 @@ interface UserActions {
     logout: () => void;
     changeName: (newName: string) => void;
     addXp: (amount: number, customMessage?: string) => void;
+    addStethoCoins: (amount: number, customMessage?: string) => void;
     checkAndAwardBadges: () => void;
     checkDailyStreak: () => void;
     handleActivity: () => void;
@@ -79,6 +87,13 @@ interface UserActions {
     requestPermanentDeleteAll: () => void;
     permanentDeleteAll: () => void;
     autoCleanupTrash: () => void;
+    // Shop & Power-ups
+    buyPowerUp: (powerUpId: PowerUpId) => void;
+    usePowerUp: (powerUpId: PowerUpId) => void;
+    // Quests
+    refreshQuests: () => void;
+    claimQuestReward: (questId: string) => void;
+    updateQuestProgress: (category: QuestCategory, value: number) => void;
 }
 
 const getDescendantIds = (folderId: string, allFolders: Folder[], allPacks: StudyPack[]) => {
@@ -142,9 +157,29 @@ export const useUserStore = create<UserState & UserActions>()(
             
             addXp: (amount, customMessage) => {
                 const roundedAmount = Math.round(amount);
+                if (roundedAmount <= 0) return;
+            
+                const oldXp = get().xp;
+                const oldLevel = getLevelInfo(oldXp).level;
+            
+                set(state => ({ xp: state.xp + roundedAmount }));
+                useUIStore.getState().showToast(customMessage || `+${roundedAmount} XP!`);
+            
+                const newXp = get().xp;
+                const newLevel = getLevelInfo(newXp).level;
+            
+                if (newLevel > oldLevel) {
+                    const reward = newLevel * COIN_ACTIONS.LEVEL_UP_MULTIPLIER;
+                    get().addStethoCoins(reward, `🎉 Lên cấp! +${reward} Stetho Coins`);
+                }
+                get().updateQuestProgress(QuestCategory.EARN_XP, roundedAmount);
+            },
+            
+            addStethoCoins: (amount, customMessage) => {
+                const roundedAmount = Math.round(amount);
                 if (roundedAmount > 0) {
-                    set(state => ({ xp: state.xp + roundedAmount }));
-                    useUIStore.getState().showToast(customMessage || `+${roundedAmount} XP!`);
+                    set(state => ({ stethoCoins: state.stethoCoins + roundedAmount }));
+                    useUIStore.getState().showToast(customMessage || `🪙 +${roundedAmount} Stetho Coins!`);
                 }
             },
             
@@ -202,27 +237,34 @@ export const useUserStore = create<UserState & UserActions>()(
                 const today = new Date(); today.setHours(0, 0, 0, 0);
                 const lastActivity = new Date(get().lastActivityDate); lastActivity.setHours(0, 0, 0, 0);
                 const diffDays = Math.round((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
+                let newStreakValue = get().streak;
                 
                 if (diffDays === 1) {
-                    const newStreak = get().streak + 1;
-                    set({ streak: newStreak, lastActivityDate: new Date().toISOString() });
-                    if (newStreak >= 2) {
-                        get().addXp(XP_ACTIONS.STREAK_BONUS, `🔥 Chuỗi ${newStreak} ngày! +${XP_ACTIONS.STREAK_BONUS} XP`);
+                    newStreakValue = get().streak + 1;
+                    set({ streak: newStreakValue, lastActivityDate: new Date().toISOString() });
+                    get().addStethoCoins(COIN_ACTIONS.STREAK_DAILY);
+                    if (newStreakValue >= 2) {
+                        get().addXp(XP_ACTIONS.STREAK_BONUS, `🔥 Chuỗi ${newStreakValue} ngày! +${XP_ACTIONS.STREAK_BONUS} XP`);
                     } else {
-                        useUIStore.getState().showToast(`🔥 Chuỗi ${newStreak} ngày!`);
+                        useUIStore.getState().showToast(`🔥 Chuỗi ${newStreakValue} ngày!`);
                     }
                 } else if (diffDays > 1) {
-                    set({ streak: 1, lastActivityDate: new Date().toISOString() });
+                    newStreakValue = 1;
+                    set({ streak: newStreakValue, lastActivityDate: new Date().toISOString() });
                     useUIStore.getState().showToast(`Bắt đầu chuỗi mới!`);
+                    get().addStethoCoins(COIN_ACTIONS.STREAK_DAILY);
                 } else { 
                     const isFirstEver = get().lastActivityDate === new Date(0).toISOString();
                     if (isFirstEver) {
-                        set({ streak: 1, lastActivityDate: new Date().toISOString() });
+                        newStreakValue = 1;
+                        set({ streak: newStreakValue, lastActivityDate: new Date().toISOString() });
                         useUIStore.getState().showToast(`🔥 Bắt đầu chuỗi mới!`);
+                        get().addStethoCoins(COIN_ACTIONS.STREAK_DAILY);
                     } else {
                         set({ lastActivityDate: new Date().toISOString() });
                     }
                 }
+                get().updateQuestProgress(QuestCategory.MAINTAIN_STREAK, newStreakValue);
 
                 const currentHour = new Date().getHours();
                 if (currentHour >= 22 && !get().unlockedBadges.includes(BadgeId.NIGHT_OWL)) {
@@ -237,7 +279,7 @@ export const useUserStore = create<UserState & UserActions>()(
 
             createStudyPack: async (source) => {
                 set({ isGenerating: true });
-                const { addXp, handleActivity } = get();
+                const { addXp, handleActivity, updateQuestProgress } = get();
                 try {
                     let serviceSource: { text?: string; file?: { data: string, mimeType: string } } = {};
                     if (source.file) {
@@ -272,6 +314,7 @@ export const useUserStore = create<UserState & UserActions>()(
                     set(state => ({ studyPacks: [...state.studyPacks, newPack] }));
                     addXp(XP_ACTIONS.CREATE_PACK);
                     handleActivity();
+                    updateQuestProgress(QuestCategory.CREATE_PACK, 1);
                     return true;
                 } catch (err) {
                     console.error(err);
@@ -337,10 +380,10 @@ export const useUserStore = create<UserState & UserActions>()(
                                   question.correctAnswers.every(ans => selectedAnswers.includes(ans));
                 const newComboCount = isCorrect ? session.comboCount + 1 : 0;
                 
-                let xpGained = 0;
-                let toastMessage: string | null = null;
-                
                 if (isCorrect && !state.correctlyAnsweredQuizIds.includes(questionId)) {
+                    let xpGained = 0;
+                    let toastMessage: string | null = null;
+                    
                     let baseAmount = XP_ACTIONS.QUIZ_CORRECT_ANSWER + (QUIZ_DIFFICULTY_POINTS[question.difficulty as QuizDifficulty] || 0);
                     if (newComboCount > 1) {
                         baseAmount += QUIZ_COMBO_BONUS * (newComboCount - 1);
@@ -351,6 +394,17 @@ export const useUserStore = create<UserState & UserActions>()(
                     toastMessage = streakMultiplier > 1
                         ? `+${xpGained} XP! (Thưởng chuỗi x${streakMultiplier.toFixed(1)})`
                         : `+${xpGained} XP!`;
+                    
+                    get().addXp(xpGained, toastMessage);
+                    get().updateQuestProgress(QuestCategory.ANSWER_CORRECTLY, 1);
+
+                    let coinsGained = 0;
+                    switch (question.difficulty) {
+                        case QuizDifficulty.EASY: coinsGained = COIN_ACTIONS.QUIZ_CORRECT_EASY; break;
+                        case QuizDifficulty.MEDIUM: coinsGained = COIN_ACTIONS.QUIZ_CORRECT_MEDIUM; break;
+                        case QuizDifficulty.HARD: coinsGained = COIN_ACTIONS.QUIZ_CORRECT_HARD; break;
+                    }
+                    get().addStethoCoins(coinsGained);
                 }
         
                 set(prev => {
@@ -380,7 +434,11 @@ export const useUserStore = create<UserState & UserActions>()(
                     const totalCorrectForPack = newCorrectlyAnsweredIds.filter(id => id.startsWith(packId)).length;
                     const totalQuestions = pack.originalQuizCount || pack.quiz.length;
                     const newProgress = totalQuestions > 0 ? Math.min(100, Math.round((totalCorrectForPack / totalQuestions) * 100)) : 0;
-        
+                    
+                    if (newProgress >= 100 && (pack.progress || 0) < 100) {
+                        get().addStethoCoins(COIN_ACTIONS.PACK_COMPLETE, `Hoàn thành Gói! +${COIN_ACTIONS.PACK_COMPLETE} Stetho Coins`);
+                    }
+
                     const updatedPacks = prev.studyPacks.map(p => {
                         if (p.id === packId) {
                             return { ...p, quizSession: newSession, progress: newProgress };
@@ -389,16 +447,11 @@ export const useUserStore = create<UserState & UserActions>()(
                     });
                     
                     return {
-                        xp: prev.xp + xpGained,
                         correctlyAnsweredQuizIds: newCorrectlyAnsweredIds,
                         totalCorrectAnswers: newTotalCorrectAnswers,
                         studyPacks: updatedPacks
                     };
                 });
-        
-                if (toastMessage) {
-                    useUIStore.getState().showToast(toastMessage);
-                }
                 
                 if (isCorrect && newComboCount >= HOT_STREAK_THRESHOLD && !get().unlockedBadges.includes(BadgeId.HOT_STREAK)) {
                     set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.HOT_STREAK] }));
@@ -412,6 +465,7 @@ export const useUserStore = create<UserState & UserActions>()(
                 const score = Object.values(session.submittedAnswers).filter((a: SubmittedAnswer) => a.isCorrect).length;
                 const isPerfect = score === session.activeQuestionIds.length && session.activeQuestionIds.length > 0;
                 
+                get().updateQuestProgress(QuestCategory.COMPLETE_QUIZ, 1);
                 if (isPerfect) {
                     set(prev => ({ perfectQuizCompletions: prev.perfectQuizCompletions + 1 }));
 
@@ -448,15 +502,24 @@ export const useUserStore = create<UserState & UserActions>()(
                                   question.correctAnswers.every(ans => selectedAnswers.includes(ans));
                 const newComboCount = isCorrect ? session.comboCount + 1 : 0;
                 
-                let xpGained = 0;
-                let toastMessage: string | null = null;
-                
                 if (isCorrect && !state.correctlyAnsweredQuizIds.includes(questionId)) {
+                    let xpGained = 0;
+                    let toastMessage: string | null = null;
                     let baseAmount = XP_ACTIONS.QUIZ_CORRECT_ANSWER + (QUIZ_DIFFICULTY_POINTS[question.difficulty as QuizDifficulty] || 0);
                     if (newComboCount > 1) baseAmount += QUIZ_COMBO_BONUS * (newComboCount - 1);
                     const streakMultiplier = state.streak > 1 ? 1 + (state.streak - 1) * 0.2 : 1;
                     xpGained = Math.round(baseAmount * streakMultiplier);
                     toastMessage = streakMultiplier > 1 ? `+${xpGained} XP! (Thưởng chuỗi x${streakMultiplier.toFixed(1)})` : `+${xpGained} XP!`;
+                    get().addXp(xpGained, toastMessage);
+                    get().updateQuestProgress(QuestCategory.ANSWER_CORRECTLY, 1);
+
+                    let coinsGained = 0;
+                    switch (question.difficulty) {
+                        case QuizDifficulty.EASY: coinsGained = COIN_ACTIONS.QUIZ_CORRECT_EASY; break;
+                        case QuizDifficulty.MEDIUM: coinsGained = COIN_ACTIONS.QUIZ_CORRECT_MEDIUM; break;
+                        case QuizDifficulty.HARD: coinsGained = COIN_ACTIONS.QUIZ_CORRECT_HARD; break;
+                    }
+                    get().addStethoCoins(coinsGained);
                 }
         
                 set(prev => {
@@ -475,14 +538,12 @@ export const useUserStore = create<UserState & UserActions>()(
                     const updatedPacks = prev.studyPacks.map(p => p.id === packId ? { ...p, m2StaatexamQuizSession: newSession } : p);
                     
                     return {
-                        xp: prev.xp + xpGained,
                         correctlyAnsweredQuizIds: newCorrectlyAnsweredIds,
                         totalCorrectAnswers: newTotalCorrectAnswers,
                         studyPacks: updatedPacks
                     };
                 });
         
-                if (toastMessage) useUIStore.getState().showToast(toastMessage);
                 if (isCorrect && newComboCount >= HOT_STREAK_THRESHOLD && !get().unlockedBadges.includes(BadgeId.HOT_STREAK)) {
                     set(prev => ({ unlockedBadges: [...prev.unlockedBadges, BadgeId.HOT_STREAK] }));
                 }
@@ -493,6 +554,7 @@ export const useUserStore = create<UserState & UserActions>()(
                 const score = Object.values(session.submittedAnswers).filter((a: SubmittedAnswer) => a.isCorrect).length;
                 const isPerfect = score === session.activeQuestionIds.length && session.activeQuestionIds.length > 0;
                 
+                get().updateQuestProgress(QuestCategory.COMPLETE_QUIZ, 1);
                 if (isPerfect) {
                     set(prev => ({ perfectQuizCompletions: prev.perfectQuizCompletions + 1 }));
 
@@ -918,6 +980,113 @@ export const useUserStore = create<UserState & UserActions>()(
                 if (deletedCount > 0) {
                     useUIStore.getState().showToast(`Đã tự động xóa ${deletedCount} mục cũ khỏi thùng rác.`);
                 }
+            },
+            
+            buyPowerUp: (powerUpId) => {
+                const powerUpData = POWER_UPS_DATA[powerUpId];
+                if (!powerUpData) return;
+                const state = get();
+                if (state.stethoCoins >= powerUpData.price) {
+                    set(s => ({
+                        stethoCoins: s.stethoCoins - powerUpData.price,
+                        inventory: {
+                            ...s.inventory,
+                            [powerUpId]: (s.inventory[powerUpId] || 0) + 1,
+                        },
+                    }));
+                    useUIStore.getState().showToast(`Đã mua ${powerUpData.name}!`);
+                } else {
+                    useUIStore.getState().showToast('Không đủ Stetho Coins!');
+                }
+            },
+            
+            usePowerUp: (powerUpId) => {
+                const state = get();
+                const currentCount = state.inventory[powerUpId] || 0;
+                if (currentCount > 0) {
+                    set(s => ({
+                        inventory: {
+                            ...s.inventory,
+                            [powerUpId]: currentCount - 1,
+                        },
+                    }));
+                }
+            },
+            
+            refreshQuests: () => {
+                const now = new Date();
+                const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
+                const day = now.getDay();
+                const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                const startOfWeek = new Date(now.setDate(diff));
+                const startOfWeekStr = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate()).toISOString().split('T')[0];
+            
+                const lastDailyRefresh = get().lastQuestRefresh.daily;
+                const lastWeeklyRefresh = get().lastQuestRefresh.weekly;
+                
+                let questsRefreshed = false;
+                let newQuests: Quest[] = [...get().activeQuests];
+            
+                if (lastDailyRefresh !== todayStr) {
+                    questsRefreshed = true;
+                    newQuests = newQuests.filter(q => q.type !== QuestType.DAILY);
+                    const dailyTemplates = [...QUEST_TEMPLATES.DAILY];
+                    const selectedDaily: Quest[] = [];
+                    for (let i = 0; i < 3 && dailyTemplates.length > 0; i++) {
+                        const randomIndex = Math.floor(Math.random() * dailyTemplates.length);
+                        const template = dailyTemplates.splice(randomIndex, 1)[0];
+                        selectedDaily.push({ ...template, type: QuestType.DAILY, progress: 0, claimed: false });
+                    }
+                    newQuests.push(...selectedDaily);
+                }
+            
+                if (lastWeeklyRefresh !== startOfWeekStr) {
+                    questsRefreshed = true;
+                    newQuests = newQuests.filter(q => q.type !== QuestType.WEEKLY);
+                    const weeklyTemplates = [...QUEST_TEMPLATES.WEEKLY];
+                    const selectedWeekly: Quest[] = [];
+                    for (let i = 0; i < 3 && weeklyTemplates.length > 0; i++) {
+                        const randomIndex = Math.floor(Math.random() * weeklyTemplates.length);
+                        const template = weeklyTemplates.splice(randomIndex, 1)[0];
+                        selectedWeekly.push({ ...template, type: QuestType.WEEKLY, progress: 0, claimed: false });
+                    }
+                    newQuests.push(...selectedWeekly);
+                }
+                
+                if(questsRefreshed) {
+                    set({ 
+                        activeQuests: newQuests,
+                        lastQuestRefresh: { daily: todayStr, weekly: startOfWeekStr }
+                    });
+                }
+            },
+
+            claimQuestReward: (questId) => {
+                const quest = get().activeQuests.find(q => q.id === questId);
+                if (quest && !quest.claimed && quest.progress >= quest.target) {
+                    set(state => ({
+                        activeQuests: state.activeQuests.map(q =>
+                            q.id === questId ? { ...q, claimed: true } : q
+                        ),
+                    }));
+                    get().addXp(quest.xpReward, `Hoàn thành nhiệm vụ! +${quest.xpReward} XP`);
+                    get().addStethoCoins(quest.coinReward, `Hoàn thành nhiệm vụ! +${quest.coinReward} Stetho Coins`);
+                }
+            },
+
+            updateQuestProgress: (category, value) => {
+                set(state => {
+                    const updatedQuests = state.activeQuests.map(quest => {
+                        if (quest.category === category && !quest.claimed) {
+                            if (category === QuestCategory.MAINTAIN_STREAK) {
+                                return { ...quest, progress: value };
+                            }
+                            return { ...quest, progress: quest.progress + value };
+                        }
+                        return quest;
+                    });
+                    return { activeQuests: updatedQuests };
+                });
             },
         }),
         {

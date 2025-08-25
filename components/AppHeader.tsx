@@ -1,15 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { getLevelInfo } from '../utils/helpers';
-import { CpuChipIcon, FireIcon, BadgeCheckIcon, SunIcon, MoonIcon, HeartIcon, MaximizeIcon, RestoreDownIcon } from './icons';
+import { CpuChipIcon, FireIcon, BadgeCheckIcon, SunIcon, MoonIcon, HeartIcon, MaximizeIcon, RestoreDownIcon, CoinIcon, ShoppingCartIcon, ClipboardCheckIcon } from './icons';
 import { BADGES_DATA } from '../constants';
 
-export const AppHeader = ({ onToggleDark, isDarkMode, onProfileClick, onStreakClick, onXpBarClick, onHomeClick, isAtHome }: { onToggleDark: () => void; isDarkMode: boolean; onProfileClick: () => void; onStreakClick: () => void; onXpBarClick: () => void; onHomeClick: () => void; isAtHome: boolean; }) => {
+export const AppHeader = ({ 
+    onToggleDark, isDarkMode, onProfileClick, onStreakClick, onXpBarClick, 
+    onHomeClick, isAtHome, onShopClick, onQuestsClick 
+}: { 
+    onToggleDark: () => void; isDarkMode: boolean; onProfileClick: () => void; 
+    onStreakClick: () => void; onXpBarClick: () => void; onHomeClick: () => void; 
+    isAtHome: boolean; onShopClick: () => void; onQuestsClick: () => void; 
+}) => {
     // Select only the specific state needed by this component
     const name = useUserStore(state => state.name);
     const xp = useUserStore(state => state.xp);
     const streak = useUserStore(state => state.streak);
+    const stethoCoins = useUserStore(state => state.stethoCoins);
     const unlockedBadges = useUserStore(state => state.unlockedBadges);
+    const hasClaimableQuests = useUserStore(state => state.activeQuests.some(q => !q.claimed && q.progress >= q.target));
     
     const { level, name: levelName, progress, nextLevelXP } = getLevelInfo(xp);
 
@@ -88,9 +97,19 @@ export const AppHeader = ({ onToggleDark, isDarkMode, onProfileClick, onStreakCl
                             </div>
                         </button>
                     </div>
-                     <button onClick={onStreakClick} className={`flex items-center gap-1 font-bold p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors ${streak > 0 ? 'text-orange-500' : 'text-slate-400 dark:text-slate-500'}`}>
+                     <button onClick={onShopClick} className={`flex items-center gap-1 font-bold p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors text-yellow-500`}>
+                        <CoinIcon className="w-5 h-5" />
+                        <span>{stethoCoins}</span>
+                    </button>
+                     <button onClick={onStreakClick} className={`flex items-center gap-1 font-bold p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors ${streak > 0 ? 'text-orange-500' : 'text-slate-400 dark:text-slate-500'}`}>
                         <FireIcon className="w-5 h-5" />
                         <span>{streak}</span>
+                    </button>
+                     <button onClick={onQuestsClick} className="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors">
+                        <ClipboardCheckIcon className="w-6 h-6" />
+                        {hasClaimableQuests && (
+                            <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800"></span>
+                        )}
                     </button>
                     <button onClick={onProfileClick} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors relative group">
                         <BadgeDisplay />

@@ -1,8 +1,6 @@
-
-
 import React from 'react';
-import type { Badge } from './types';
-import { BadgeId } from './types';
+import type { Badge, PowerUp } from './types';
+import { BadgeId, PowerUpId, QuestType, QuestCategory } from './types';
 import { 
     BookOpenIcon, 
     ClipboardListIcon, 
@@ -27,7 +25,8 @@ import {
     StarIcon,
     BoltIcon,
     MoonIcon,
-    SunIcon
+    SunIcon,
+    ScaleIcon
 } from './components/icons';
 
 const badgeIconProps = { className: "w-full h-full" };
@@ -112,6 +111,18 @@ export const XP_ACTIONS = {
     PERSONAL_TOUCH: 20,
 };
 
+export const COIN_ACTIONS = {
+    QUIZ_CORRECT_EASY: 5,
+    QUIZ_CORRECT_MEDIUM: 10,
+    QUIZ_CORRECT_HARD: 15,
+    PACK_COMPLETE: 200,
+    LEVEL_UP_MULTIPLIER: 250,
+    STREAK_DAILY: 50,
+    STREAK_MILESTONE_7: 250,
+    STREAK_MILESTONE_14: 500,
+    STREAK_DAILY_INCREASE: 75,
+};
+
 export const QUIZ_DIFFICULTY_POINTS = {
     Easy: 30,
     Medium: 60,
@@ -148,3 +159,29 @@ export const PACK_COLORS = [
   { key: 'violet', bg: 'bg-violet-200 dark:bg-violet-900/60', text: 'text-violet-800 dark:text-violet-200' },
   { key: 'amber', bg: 'bg-amber-200 dark:bg-amber-900/60', text: 'text-amber-800 dark:text-amber-200' },
 ];
+
+export const POWER_UPS_DATA: Record<PowerUpId, Omit<PowerUp, 'id'>> = {
+    [PowerUpId.FIFTY_FIFTY]: {
+        name: '50:50',
+        description: 'Loại bỏ hai phương án sai trong một câu hỏi trắc nghiệm.',
+        price: 150,
+        icon: React.createElement(ScaleIcon, { className: 'w-8 h-8' }),
+    },
+};
+
+export const QUEST_TEMPLATES = {
+    [QuestType.DAILY]: [
+        { id: 'd_answer_15', category: QuestCategory.ANSWER_CORRECTLY, description: 'Trả lời đúng 15 câu hỏi', target: 15, xpReward: 75, coinReward: 50 },
+        { id: 'd_answer_30', category: QuestCategory.ANSWER_CORRECTLY, description: 'Trả lời đúng 30 câu hỏi', target: 30, xpReward: 150, coinReward: 100 },
+        { id: 'd_earn_xp_500', category: QuestCategory.EARN_XP, description: 'Kiếm được 500 XP', target: 500, xpReward: 100, coinReward: 75 },
+        { id: 'd_create_pack_1', category: QuestCategory.CREATE_PACK, description: 'Tạo 1 Gói học tập mới', target: 1, xpReward: 200, coinReward: 100 },
+        { id: 'd_complete_quiz_1', category: QuestCategory.COMPLETE_QUIZ, description: 'Hoàn thành 1 bài trắc nghiệm', target: 1, xpReward: 100, coinReward: 50 },
+    ],
+    [QuestType.WEEKLY]: [
+        { id: 'w_answer_100', category: QuestCategory.ANSWER_CORRECTLY, description: 'Trả lời đúng 100 câu hỏi', target: 100, xpReward: 500, coinReward: 300 },
+        { id: 'w_create_pack_3', category: QuestCategory.CREATE_PACK, description: 'Tạo 3 Gói học tập mới', target: 3, xpReward: 600, coinReward: 400 },
+        { id: 'w_earn_xp_2500', category: QuestCategory.EARN_XP, description: 'Kiếm được 2500 XP', target: 2500, xpReward: 400, coinReward: 250 },
+        { id: 'w_maintain_streak_7', category: QuestCategory.MAINTAIN_STREAK, description: 'Duy trì chuỗi học 7 ngày', target: 7, xpReward: 750, coinReward: 500 },
+        { id: 'w_complete_quiz_5', category: QuestCategory.COMPLETE_QUIZ, description: 'Hoàn thành 5 bài trắc nghiệm', target: 5, xpReward: 400, coinReward: 200 },
+    ]
+};
