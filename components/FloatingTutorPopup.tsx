@@ -4,14 +4,17 @@ import { markdownToHtml } from '../utils/markdown';
 import { ChatMessage } from '../types';
 import { ChatAlt2Icon, MinusIcon, XIcon, CpuChipIcon, MaximizeIcon, RestoreDownIcon } from './icons';
 
+interface MemoizedChatMessageProps {
+    msg: ChatMessage;
+}
 // Memoized component to render a single chat message, preventing re-processing of markdown for old messages.
-const MemoizedChatMessage = React.memo(({ msg }: { msg: ChatMessage }) => {
+const MemoizedChatMessage: React.FC<MemoizedChatMessageProps> = React.memo(({ msg }) => {
     const messageHtml = useMemo(() => markdownToHtml(msg.text), [msg.text]);
 
     return (
         <div className={`flex items-start gap-2.5 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
              {msg.sender === 'ai' && <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center flex-shrink-0"><CpuChipIcon className="w-5 h-5 text-brand-primary"/></div>}
-            <div className={`p-3 rounded-xl max-w-xs ${msg.sender === 'user' ? 'bg-slate-200 dark:bg-gray-600' : 'bg-slate-100 dark:bg-gray-700'}`}>
+            <div className={`p-3 rounded-xl ${msg.sender === 'user' ? 'bg-slate-200 dark:bg-gray-600 max-w-xs' : 'bg-slate-100 dark:bg-gray-700'}`}>
                <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: messageHtml }}></div>
             </div>
         </div>

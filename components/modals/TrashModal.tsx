@@ -3,7 +3,12 @@ import { StudyPack, Folder } from '../../types';
 import { useUserStore } from '../../store/useUserStore';
 import { XIcon, TrashIcon, ArrowUturnLeftIcon, BookOpenIcon, FolderIcon, ICON_MAP } from '../icons';
 
-export const TrashModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void; }) => {
+interface TrashModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export const TrashModal: React.FC<TrashModalProps> = ({ isOpen, onClose }) => {
     const { 
         studyPacks, 
         folders, 

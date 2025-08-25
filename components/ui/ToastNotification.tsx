@@ -1,7 +1,11 @@
-
 import React, { useEffect } from 'react';
 
-export const ToastNotification = ({ message, onDismiss }: { message: string; onDismiss: () => void; }) => {
+interface ToastNotificationProps {
+    message: string;
+    onDismiss: () => void;
+}
+
+export const ToastNotification: React.FC<ToastNotificationProps> = ({ message, onDismiss }) => {
     useEffect(() => {
         const timer = setTimeout(onDismiss, 3000);
         return () => clearTimeout(timer);

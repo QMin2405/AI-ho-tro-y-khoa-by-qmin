@@ -1,7 +1,16 @@
 
 import React from 'react';
 
-export const ConfirmModal = ({ title, text, confirmText, onConfirm, onCancel, isDestructive = true }: { title: string; text: string; confirmText: string; onConfirm: () => void; onCancel: () => void; isDestructive?: boolean; }) => (
+interface ConfirmModalProps {
+    title: string;
+    text: string;
+    confirmText: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+    isDestructive?: boolean;
+}
+
+export const ConfirmModal: React.FC<ConfirmModalProps> = ({ title, text, confirmText, onConfirm, onCancel, isDestructive = true }) => (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all animate-fade-in" onClick={e => e.stopPropagation()}>
             <h2 className="text-xl font-bold mb-4">{title}</h2>
