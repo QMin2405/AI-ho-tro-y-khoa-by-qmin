@@ -4,11 +4,8 @@ import { markdownToHtml } from '../utils/markdown';
 import { ChatMessage } from '../types';
 import { ChatAlt2Icon, MinusIcon, XIcon, CpuChipIcon, MaximizeIcon, RestoreDownIcon } from './icons';
 
-interface MemoizedChatMessageProps {
-    msg: ChatMessage;
-}
 // Memoized component to render a single chat message, preventing re-processing of markdown for old messages.
-const MemoizedChatMessage: React.FC<MemoizedChatMessageProps> = React.memo(({ msg }) => {
+const MemoizedChatMessage = React.memo(({ msg }: { msg: ChatMessage }) => {
     const messageHtml = useMemo(() => markdownToHtml(msg.text), [msg.text]);
 
     return (

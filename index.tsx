@@ -18,7 +18,6 @@ import { ToastNotification } from './components/ui/ToastNotification';
 const App = () => {
     // UI state that's local to the App shell
     const [isDarkMode, setIsDarkMode] = useState(false);
-    const [isFullscreen, setIsFullscreen] = useState(false);
     const [activeView, setActiveView] = useState<'dashboard' | 'studyPack'>('dashboard');
     const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -60,15 +59,6 @@ const App = () => {
     useEffect(() => {
         useUserStore.getState().checkAndAwardBadges();
     }, [useUserStore(state => state.unlockedBadges.length), useUserStore(state => state.xp), useUserStore(state => state.studyPacks.length), useUserStore(state => state.questionsAskedCount), useUserStore(state => state.totalCorrectAnswers)]);
-    
-    // Effect to handle fullscreen changes (e.g., user pressing Esc)
-    useEffect(() => {
-        const handleFullscreenChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
-        };
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    }, []);
 
 
     // --- Handlers ---
@@ -85,18 +75,6 @@ const App = () => {
             }
             return newIsDark;
         });
-    }, []);
-
-    const toggleFullscreen = useCallback(() => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                console.error(`Lỗi khi bật chế độ toàn màn hình: ${err.message} (${err.name})`);
-            });
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            }
-        }
     }, []);
     
     const handleSelectPack = useCallback((id: string) => {
@@ -122,8 +100,6 @@ const App = () => {
                 onXpBarClick={() => setIsXpModalOpen(true)}
                 onHomeClick={handleBackToHome}
                 isAtHome={isAtHome}
-                isFullscreen={isFullscreen}
-                onToggleFullscreen={toggleFullscreen}
             />
             <main className="flex-grow">
                 {activeView === 'dashboard' && (

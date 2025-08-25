@@ -1,10 +1,10 @@
 import React from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { getLevelInfo } from '../utils/helpers';
-import { CpuChipIcon, FireIcon, BadgeCheckIcon, SunIcon, MoonIcon, HeartIcon, MaximizeIcon, RestoreDownIcon } from './icons';
+import { CpuChipIcon, FireIcon, BadgeCheckIcon, SunIcon, MoonIcon, HeartIcon } from './icons';
 import { BADGES_DATA } from '../constants';
 
-export const AppHeader = ({ onToggleDark, isDarkMode, onProfileClick, onStreakClick, onXpBarClick, onHomeClick, isAtHome, isFullscreen, onToggleFullscreen }: { onToggleDark: () => void; isDarkMode: boolean; onProfileClick: () => void; onStreakClick: () => void; onXpBarClick: () => void; onHomeClick: () => void; isAtHome: boolean; isFullscreen: boolean; onToggleFullscreen: () => void; }) => {
+export const AppHeader = ({ onToggleDark, isDarkMode, onProfileClick, onStreakClick, onXpBarClick, onHomeClick, isAtHome }: { onToggleDark: () => void; isDarkMode: boolean; onProfileClick: () => void; onStreakClick: () => void; onXpBarClick: () => void; onHomeClick: () => void; isAtHome: boolean; }) => {
     // Select only the specific state needed by this component
     const name = useUserStore(state => state.name);
     const xp = useUserStore(state => state.xp);
@@ -73,11 +73,8 @@ export const AppHeader = ({ onToggleDark, isDarkMode, onProfileClick, onStreakCl
                             </div>
                         )}
                     </button>
-                    <button onClick={onToggleDark} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors" aria-label={isDarkMode ? "Chuyển sang chế độ sáng" : "Chuyển sang chế độ tối"}>
+                    <button onClick={onToggleDark} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors">
                         {isDarkMode ? <SunIcon className="w-6 h-6 text-yellow-400" /> : <MoonIcon className="w-6 h-6 text-slate-700" />}
-                    </button>
-                    <button onClick={onToggleFullscreen} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors" aria-label={isFullscreen ? "Thoát chế độ toàn màn hình" : "Vào chế độ toàn màn hình"}>
-                        {isFullscreen ? <RestoreDownIcon className="w-6 h-6" /> : <MaximizeIcon className="w-6 h-6" />}
                     </button>
                 </div>
             </div>

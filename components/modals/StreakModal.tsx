@@ -3,12 +3,7 @@ import { useUserStore } from '../../store/useUserStore';
 import { STREAK_MILESTONES } from '../../constants';
 import { FireIcon, XIcon } from '../icons';
 
-interface StreakModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-}
-
-export const StreakModal: React.FC<StreakModalProps> = ({ isOpen, onClose }) => {
+export const StreakModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void; }) => {
     const streak = useUserStore(state => state.streak);
 
     if (!isOpen) return null;

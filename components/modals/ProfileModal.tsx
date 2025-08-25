@@ -5,12 +5,7 @@ import { BADGES_DATA } from '../../constants';
 import { getLevelInfo, exportUserData } from '../../utils/helpers';
 import { XIcon, UserCircleIcon, ArrowDownTrayIcon } from '../icons';
 
-interface ProfileModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-}
-
-export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
+export const ProfileModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void; }) => {
     const userData = useUserStore(state => state);
 
     const allBadgeDetails = useMemo(() => {
