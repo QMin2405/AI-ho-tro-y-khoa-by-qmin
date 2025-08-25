@@ -745,7 +745,12 @@ interface ContentData {
     glossary: Types.GlossaryItem[] | undefined;
 }
 
-export const StudyPackView = ({ studyPackId, onBack }: { studyPackId: string; onBack: () => void; }) => {
+interface StudyPackViewProps {
+    studyPackId: string;
+    onBack: () => void;
+}
+
+export const StudyPackView: React.FC<StudyPackViewProps> = ({ studyPackId, onBack }) => {
     const { recordLearningModeUsage } = useUserStore.getState();
     const [mode, setMode] = useState<LearningMode>(LearningMode.SUMMARY);
 
