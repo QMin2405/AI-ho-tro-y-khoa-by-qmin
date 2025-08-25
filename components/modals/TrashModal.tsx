@@ -47,6 +47,9 @@ export const TrashModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700"><XIcon /></button>
                 </div>
                 <div className="p-6 overflow-y-auto">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 italic text-center">
+                        Các mục trong thùng rác sẽ tự động bị xóa vĩnh viễn sau 30 ngày.
+                    </p>
                     {deletedItems.length === 0 ? (
                         <div className="text-center py-12">
                             <TrashIcon className="w-12 h-12 mx-auto text-slate-400 mb-2" />

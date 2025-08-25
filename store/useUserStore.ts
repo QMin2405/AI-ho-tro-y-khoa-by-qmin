@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { UserData, StudyPack, BadgeId, QuizDifficulty, Folder, ChatMessage, QuizSession, LearningMode, SubmittedAnswer } from '../types';
@@ -79,6 +78,7 @@ interface UserActions {
     restoreAll: () => void;
     requestPermanentDeleteAll: () => void;
     permanentDeleteAll: () => void;
+    autoCleanupTrash: () => void;
 }
 
 const getDescendantIds = (folderId: string, allFolders: Folder[], allPacks: StudyPack[]) => {
@@ -646,24 +646,54 @@ export const useUserStore = create<UserState & UserActions>()(
             },
             
             softDeleteItem: (id, type) => {
+                const state = get();
+                let xpToDeduct = 0;
+                const deletionTimestamp = new Date().toISOString();
+
+                const calculateXpForPack = (pack: StudyPack) => {
+                    let packXp = 0;
+                    const allQuestionsInPack = [...(pack.quiz || []), ...(pack.m2StaatexamQuiz || [])];
+                    for (const question of allQuestionsInPack) {
+                        if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
+                            const baseAmount = XP_ACTIONS.QUIZ_CORRECT_ANSWER + (QUIZ_DIFFICULTY_POINTS[question.difficulty as QuizDifficulty] || 0);
+                            packXp += baseAmount;
+                        }
+                    }
+                    return packXp;
+                };
+
                 if (type === 'pack') {
-                    set(state => ({ studyPacks: state.studyPacks.map(p => p.id === id ? { ...p, isDeleted: true } : p) }));
+                    const packToSoftDelete = state.studyPacks.find(p => p.id === id);
+                    if (packToSoftDelete) {
+                        xpToDeduct = calculateXpForPack(packToSoftDelete);
+                        set(s => ({
+                            studyPacks: s.studyPacks.map(p => p.id === id ? { ...p, isDeleted: true, deletedAt: deletionTimestamp } : p),
+                            xp: Math.max(0, s.xp - xpToDeduct)
+                        }));
+                    }
                 } else {
-                    const { folderIds, packIds } = getDescendantIds(id, get().folders, get().studyPacks);
+                    const { folderIds, packIds } = getDescendantIds(id, state.folders, state.studyPacks);
                     const allFoldersToDelete = [id, ...folderIds];
-                    set(state => ({
-                        folders: state.folders.map(f => allFoldersToDelete.includes(f.id) ? { ...f, isDeleted: true } : f),
-                        studyPacks: state.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: true } : p)
+                    const packsToSoftDelete = state.studyPacks.filter(p => packIds.includes(p.id));
+
+                    packsToSoftDelete.forEach(pack => {
+                        xpToDeduct += calculateXpForPack(pack);
+                    });
+
+                    set(s => ({
+                        folders: s.folders.map(f => allFoldersToDelete.includes(f.id) ? { ...f, isDeleted: true, deletedAt: deletionTimestamp } : f),
+                        studyPacks: s.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: true, deletedAt: deletionTimestamp } : p),
+                        xp: Math.max(0, s.xp - xpToDeduct)
                     }));
                 }
-                 useUIStore.getState().showToast("Đã chuyển vào thùng rác.");
+                useUIStore.getState().showToast(`Đã chuyển vào thùng rác. Đã trừ ${xpToDeduct} XP.`);
             },
             
             requestSoftDelete: (id, type) => {
                  const { softDeleteItem } = get();
                 useUIStore.getState().showConfirmModal({
-                    title: `Xóa ${type === 'pack' ? 'Gói học tập' : 'Thư mục'}?`,
-                    text: `Mục này sẽ được chuyển vào thùng rác. ${type === 'folder' ? 'Tất cả các mục con bên trong cũng sẽ được chuyển vào thùng rác.' : ''} Bạn có thể khôi phục lại sau.`,
+                    title: `Chuyển vào thùng rác?`,
+                    text: `Mục này sẽ được chuyển vào thùng rác. Tất cả XP kiếm được từ mục này sẽ bị trừ ngay lập tức. Bạn có thể khôi phục lại cả mục và XP sau.`,
                     confirmText: 'Chuyển vào thùng rác',
                     onConfirm: () => softDeleteItem(id, type),
                     isDestructive: true,
@@ -671,38 +701,105 @@ export const useUserStore = create<UserState & UserActions>()(
             },
             
             restoreItem: (id, type) => {
-                if (type === 'pack') {
-                    const packToRestore = get().studyPacks.find(p => p.id === id);
-                    const parentIsDeleted = get().folders.some(f => f.id === packToRestore?.folderId && f.isDeleted);
-                    set(state => ({ studyPacks: state.studyPacks.map(p => p.id === id ? { ...p, isDeleted: false, folderId: parentIsDeleted ? null : p.folderId } : p) }));
+                const state = get();
+                let xpToRestore = 0;
 
+                const calculateXpForPack = (pack: StudyPack) => {
+                    let packXp = 0;
+                    const allQuestionsInPack = [...(pack.quiz || []), ...(pack.m2StaatexamQuiz || [])];
+                    for (const question of allQuestionsInPack) {
+                        if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
+                            const baseAmount = XP_ACTIONS.QUIZ_CORRECT_ANSWER + (QUIZ_DIFFICULTY_POINTS[question.difficulty as QuizDifficulty] || 0);
+                            packXp += baseAmount;
+                        }
+                    }
+                    return packXp;
+                };
+
+                if (type === 'pack') {
+                    const packToRestore = state.studyPacks.find(p => p.id === id);
+                    if (packToRestore) {
+                        xpToRestore = calculateXpForPack(packToRestore);
+                        const parentIsDeleted = state.folders.some(f => f.id === packToRestore.folderId && f.isDeleted);
+                        set(s => ({
+                            studyPacks: s.studyPacks.map(p => p.id === id ? { ...p, isDeleted: false, deletedAt: undefined, folderId: parentIsDeleted ? null : p.folderId } : p),
+                            xp: s.xp + xpToRestore
+                        }));
+                    }
                 } else {
-                    const { folderIds, packIds } = getDescendantIds(id, get().folders, get().studyPacks);
+                    const { folderIds, packIds } = getDescendantIds(id, state.folders, state.studyPacks);
                     const allFoldersToRestore = [id, ...folderIds];
+                    const packsToRestore = state.studyPacks.filter(p => packIds.includes(p.id));
+
+                    packsToRestore.forEach(pack => {
+                        xpToRestore += calculateXpForPack(pack);
+                    });
                     
-                    const folderToRestore = get().folders.find(f => f.id === id);
-                    const parentIsDeleted = get().folders.some(f => f.id === folderToRestore?.parentId && f.isDeleted);
+                    const folderToRestore = state.folders.find(f => f.id === id);
+                    const parentIsDeleted = state.folders.some(f => f.id === folderToRestore?.parentId && f.isDeleted);
                     
-                    set(state => ({
-                        folders: state.folders.map(f => allFoldersToRestore.includes(f.id) 
-                            ? { ...f, isDeleted: false, parentId: (f.id === id && parentIsDeleted) ? null : f.parentId } 
+                    set(s => ({
+                        folders: s.folders.map(f => allFoldersToRestore.includes(f.id) 
+                            ? { ...f, isDeleted: false, deletedAt: undefined, parentId: (f.id === id && parentIsDeleted) ? null : f.parentId } 
                             : f),
-                        studyPacks: state.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: false } : p)
+                        studyPacks: s.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: false, deletedAt: undefined } : p),
+                        xp: s.xp + xpToRestore
                     }));
                 }
-                useUIStore.getState().showToast("Đã khôi phục.");
+                useUIStore.getState().showToast(`Đã khôi phục. Đã hoàn lại ${xpToRestore} XP.`);
             },
             
             permanentDeleteItem: (id, type) => {
                 if (type === 'pack') {
-                    set(state => ({ studyPacks: state.studyPacks.filter(p => p.id !== id) }));
+                    set(state => {
+                        const packToDelete = state.studyPacks.find(p => p.id === id);
+                        if (!packToDelete) return state;
+
+                        const allQuestionsInPack = [...(packToDelete.quiz || []), ...(packToDelete.m2StaatexamQuiz || [])];
+                        const answeredQuestionIdsInPack = new Set<string>();
+
+                        for (const question of allQuestionsInPack) {
+                            if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
+                                answeredQuestionIdsInPack.add(question.uniqueId);
+                            }
+                        }
+                        
+                        const newCorrectlyAnsweredQuizIds = state.correctlyAnsweredQuizIds.filter(qid => !answeredQuestionIdsInPack.has(qid));
+                        const newTotalCorrectAnswers = state.totalCorrectAnswers - answeredQuestionIdsInPack.size;
+
+                        return { 
+                            studyPacks: state.studyPacks.filter(p => p.id !== id),
+                            correctlyAnsweredQuizIds: newCorrectlyAnsweredQuizIds,
+                            totalCorrectAnswers: newTotalCorrectAnswers
+                        };
+                    });
                 } else {
                     const { folderIds, packIds } = getDescendantIds(id, get().folders, get().studyPacks);
-                    const allIdsToDelete = [id, ...folderIds];
-                    set(state => ({
-                        folders: state.folders.filter(f => !allIdsToDelete.includes(f.id)),
-                        studyPacks: state.studyPacks.filter(p => !packIds.includes(p.id))
-                    }));
+                    const allFolderIdsToDelete = [id, ...folderIds];
+
+                    set(state => {
+                        const allAnsweredIdsToClear = new Set<string>();
+                        const packsToDelete = state.studyPacks.filter(p => packIds.includes(p.id));
+
+                        for (const packToDelete of packsToDelete) {
+                            const allQuestionsInPack = [...(packToDelete.quiz || []), ...(packToDelete.m2StaatexamQuiz || [])];
+                            for (const question of allQuestionsInPack) {
+                                if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
+                                    allAnsweredIdsToClear.add(question.uniqueId);
+                                }
+                            }
+                        }
+
+                        const newCorrectlyAnsweredQuizIds = state.correctlyAnsweredQuizIds.filter(qid => !allAnsweredIdsToClear.has(qid));
+                        const newTotalCorrectAnswers = state.totalCorrectAnswers - allAnsweredIdsToClear.size;
+
+                        return {
+                            folders: state.folders.filter(f => !allFolderIdsToDelete.includes(f.id)),
+                            studyPacks: state.studyPacks.filter(p => !packIds.includes(p.id)),
+                            correctlyAnsweredQuizIds: newCorrectlyAnsweredQuizIds,
+                            totalCorrectAnswers: newTotalCorrectAnswers
+                        };
+                    });
                 }
                 useUIStore.getState().showToast("Đã xóa vĩnh viễn.");
             },
@@ -711,7 +808,7 @@ export const useUserStore = create<UserState & UserActions>()(
                 const { permanentDeleteItem } = get();
                 useUIStore.getState().showConfirmModal({
                     title: `Xóa vĩnh viễn?`,
-                    text: `Hành động này không thể hoàn tác. ${type === 'folder' ? 'Tất cả các mục con bên trong cũng sẽ bị xóa vĩnh viễn.' : ''}`,
+                    text: 'Hành động này sẽ xóa vĩnh viễn mục này và tất cả tiến trình liên quan. Hành động này không thể hoàn tác.',
                     confirmText: 'Xóa vĩnh viễn',
                     onConfirm: () => permanentDeleteItem(id, type),
                     isDestructive: true,
@@ -719,18 +816,59 @@ export const useUserStore = create<UserState & UserActions>()(
             },
 
             restoreAll: () => {
-                set(state => ({
-                    folders: state.folders.map(f => ({ ...f, isDeleted: false })),
-                    studyPacks: state.studyPacks.map(p => ({ ...p, isDeleted: false })),
+                const state = get();
+                let totalXpToRestore = 0;
+
+                const calculateXpForPack = (pack: StudyPack) => {
+                    let packXp = 0;
+                    const allQuestionsInPack = [...(pack.quiz || []), ...(pack.m2StaatexamQuiz || [])];
+                    for (const question of allQuestionsInPack) {
+                        if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
+                            const baseAmount = XP_ACTIONS.QUIZ_CORRECT_ANSWER + (QUIZ_DIFFICULTY_POINTS[question.difficulty as QuizDifficulty] || 0);
+                            packXp += baseAmount;
+                        }
+                    }
+                    return packXp;
+                };
+
+                state.studyPacks.forEach(pack => {
+                    if (pack.isDeleted) {
+                        totalXpToRestore += calculateXpForPack(pack);
+                    }
+                });
+
+                set(s => ({
+                    folders: s.folders.map(f => f.isDeleted ? { ...f, isDeleted: false, deletedAt: undefined } : f),
+                    studyPacks: s.studyPacks.map(p => p.isDeleted ? { ...p, isDeleted: false, deletedAt: undefined } : p),
+                    xp: s.xp + totalXpToRestore
                 }));
-                useUIStore.getState().showToast("Đã khôi phục tất cả.");
+                useUIStore.getState().showToast(`Đã khôi phục tất cả. Đã hoàn lại ${totalXpToRestore} XP.`);
             },
 
             permanentDeleteAll: () => {
-                set(state => ({
-                    folders: state.folders.filter(f => !f.isDeleted),
-                    studyPacks: state.studyPacks.filter(p => !p.isDeleted),
-                }));
+                set(state => {
+                    const allAnsweredIdsToClear = new Set<string>();
+                    const packsToDelete = state.studyPacks.filter(p => p.isDeleted);
+            
+                    for (const packToDelete of packsToDelete) {
+                        const allQuestionsInPack = [...(packToDelete.quiz || []), ...(packToDelete.m2StaatexamQuiz || [])];
+                        for (const question of allQuestionsInPack) {
+                            if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
+                                allAnsweredIdsToClear.add(question.uniqueId);
+                            }
+                        }
+                    }
+                    
+                    const newCorrectlyAnsweredQuizIds = state.correctlyAnsweredQuizIds.filter(qid => !allAnsweredIdsToClear.has(qid));
+                    const newTotalCorrectAnswers = state.totalCorrectAnswers - allAnsweredIdsToClear.size;
+            
+                    return {
+                        folders: state.folders.filter(f => !f.isDeleted),
+                        studyPacks: state.studyPacks.filter(p => !p.isDeleted),
+                        correctlyAnsweredQuizIds: newCorrectlyAnsweredQuizIds,
+                        totalCorrectAnswers: newTotalCorrectAnswers
+                    };
+                });
                 useUIStore.getState().showToast("Đã dọn sạch thùng rác.");
             },
 
@@ -738,11 +876,39 @@ export const useUserStore = create<UserState & UserActions>()(
                  const { permanentDeleteAll } = get();
                 useUIStore.getState().showConfirmModal({
                     title: `Dọn sạch thùng rác?`,
-                    text: `Tất cả các mục trong thùng rác sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.`,
+                    text: `Tất cả các mục trong thùng rác sẽ bị xóa vĩnh viễn cùng với tiến trình liên quan. Hành động này không thể hoàn tác.`,
                     confirmText: 'Xóa vĩnh viễn',
                     onConfirm: () => permanentDeleteAll(),
                     isDestructive: true,
                 });
+            },
+
+            autoCleanupTrash: () => {
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                const state = get();
+                const expiredPacks = state.studyPacks.filter(p => 
+                    p.isDeleted && p.deletedAt && new Date(p.deletedAt) < thirtyDaysAgo
+                );
+                const expiredFolders = state.folders.filter(f => 
+                    f.isDeleted && f.deletedAt && new Date(f.deletedAt) < thirtyDaysAgo
+                );
+                
+                let deletedCount = 0;
+                
+                expiredPacks.forEach(pack => {
+                    get().permanentDeleteItem(pack.id, 'pack');
+                    deletedCount++;
+                });
+                expiredFolders.forEach(folder => {
+                    get().permanentDeleteItem(folder.id, 'folder');
+                    deletedCount++;
+                });
+                
+                if (deletedCount > 0) {
+                    useUIStore.getState().showToast(`Đã tự động xóa ${deletedCount} mục cũ khỏi thùng rác.`);
+                }
             },
         }),
         {

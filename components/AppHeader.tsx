@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { getLevelInfo } from '../utils/helpers';
-import { CpuChipIcon, FireIcon, BadgeCheckIcon, SunIcon, MoonIcon, HeartIcon } from './icons';
+import { CpuChipIcon, FireIcon, BadgeCheckIcon, SunIcon, MoonIcon, HeartIcon, MaximizeIcon, RestoreDownIcon } from './icons';
 import { BADGES_DATA } from '../constants';
 
 export const AppHeader = ({ onToggleDark, isDarkMode, onProfileClick, onStreakClick, onXpBarClick, onHomeClick, isAtHome }: { onToggleDark: () => void; isDarkMode: boolean; onProfileClick: () => void; onStreakClick: () => void; onXpBarClick: () => void; onHomeClick: () => void; isAtHome: boolean; }) => {
@@ -15,6 +15,33 @@ export const AppHeader = ({ onToggleDark, isDarkMode, onProfileClick, onStreakCl
 
     const latestBadgeId = unlockedBadges.length > 0 ? unlockedBadges[unlockedBadges.length - 1] : null;
     const latestBadge = latestBadgeId ? BADGES_DATA[latestBadgeId] : null;
+
+    const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
+    const handleToggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    };
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    }, []);
+
 
     const BadgeDisplay = () => {
         if (latestBadge && latestBadge.icon && React.isValidElement(latestBadge.icon)) {
@@ -75,6 +102,9 @@ export const AppHeader = ({ onToggleDark, isDarkMode, onProfileClick, onStreakCl
                     </button>
                     <button onClick={onToggleDark} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors">
                         {isDarkMode ? <SunIcon className="w-6 h-6 text-yellow-400" /> : <MoonIcon className="w-6 h-6 text-slate-700" />}
+                    </button>
+                    <button onClick={handleToggleFullscreen} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors">
+                        {isFullscreen ? <RestoreDownIcon className="w-6 h-6" /> : <MaximizeIcon className="w-6 h-6" />}
                     </button>
                 </div>
             </div>

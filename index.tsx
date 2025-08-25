@@ -31,6 +31,7 @@ const App = () => {
 
     // Get state and actions from stores
     const checkDailyStreak = useUserStore(state => state.checkDailyStreak);
+    const autoCleanupTrash = useUserStore(state => state.autoCleanupTrash);
     const isLoggedIn = useUserStore(state => state.isLoggedIn);
     
     // UI store for global components like toasts and confirm modals
@@ -49,11 +50,14 @@ const App = () => {
             setIsDarkMode(true);
         }
         
+        // Cleanup trash on app start
+        autoCleanupTrash();
+
         // When the app loads and we know if the user is logged in, check their streak
         if (isLoggedIn) {
              checkDailyStreak();
         }
-    }, [isLoggedIn, checkDailyStreak]);
+    }, [isLoggedIn, checkDailyStreak, autoCleanupTrash]);
     
     // Effect to check badges whenever user data changes
     useEffect(() => {

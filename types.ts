@@ -65,6 +65,7 @@ export interface Folder {
     id: string;
     name: string;
     isDeleted?: boolean;
+    deletedAt?: string;
     icon?: string;
     parentId?: string | null;
 }
@@ -85,6 +86,7 @@ export interface StudyPack {
     m2StaatexamQuizSession?: QuizSession;
     folderId?: string | null;
     isDeleted?: boolean;
+    deletedAt?: string;
     color?: string;
     icon?: string;
     usedLearningModes?: LearningMode[];
