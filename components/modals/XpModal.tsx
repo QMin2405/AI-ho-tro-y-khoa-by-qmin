@@ -4,12 +4,7 @@ import { getLevelInfo } from '../../utils/helpers';
 import { LEVEL_NAMES, LEVEL_THRESHOLDS } from '../../constants';
 import { XIcon, PencilIcon, ArrowDownTrayIcon, ArrowUpTrayIcon } from '../icons';
 
-interface XpModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-}
-
-export const XpModal: React.FC<XpModalProps> = ({ isOpen, onClose }) => {
+export const XpModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void; }) => {
     const name = useUserStore(state => state.name);
     const xp = useUserStore(state => state.xp);
     const isLoggedIn = useUserStore(state => state.isLoggedIn);
