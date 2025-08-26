@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../../store/useUserStore';
+import { useUIStore } from '../../store/useUIStore';
 import { POWER_UPS_DATA, THEMES_DATA } from '../../constants';
 import { PowerUpId, ThemeId } from '../../types';
 import { XIcon, CoinIcon, GiftIcon, SparklesIcon, CheckCircleIcon } from '../icons';
@@ -43,6 +44,7 @@ const PowerUpsTab = () => {
 
 const ThemesTab = () => {
     const { stethoCoins, ownedThemes, activeTheme, buyTheme, setTheme } = useUserStore();
+    const { previewThemeId, setPreviewTheme } = useUIStore();
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -51,6 +53,7 @@ const ThemesTab = () => {
                 const isOwned = ownedThemes?.includes(themeId);
                 const isActive = activeTheme === themeId;
                 const canAfford = stethoCoins >= theme.price;
+                const isPreviewing = previewThemeId === themeId;
 
                 const getButton = () => {
                     if (isActive) {
@@ -82,7 +85,20 @@ const ThemesTab = () => {
                 };
 
                 return (
-                     <div key={id} className="bg-background rounded-lg p-4 flex flex-col gap-4 border border-border">
+                     <div 
+                        key={id} 
+                        onClick={() => {
+                            if (isActive) return; // Don't allow previewing the active theme.
+                            setPreviewTheme(isPreviewing ? null : themeId);
+                        }}
+                        className={`bg-background rounded-lg p-4 flex flex-col gap-4 border transition-all ${
+                            isPreviewing 
+                                ? 'ring-2 ring-brand-secondary' // Highlight if previewing
+                                : 'border-border'
+                        } ${
+                            !isActive && 'cursor-pointer hover:border-text-secondary/50' // Add hover effect if not the active theme
+                        }`}
+                     >
                         <div className="flex-grow">
                              <div className="flex items-center justify-between">
                                 <h3 className="font-bold text-lg">{theme.name}</h3>
@@ -93,7 +109,9 @@ const ThemesTab = () => {
                                 </div>
                             </div>
                         </div>
-                        {getButton()}
+                        <div onClick={(e) => e.stopPropagation()}>
+                            {getButton()}
+                        </div>
                     </div>
                 )
             })}
@@ -104,6 +122,14 @@ const ThemesTab = () => {
 export const ShopModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void; }) => {
     const { stethoCoins, tributeClaimed, claimTribute } = useUserStore();
     const [activeTab, setActiveTab] = useState<'items' | 'themes'>('items');
+    const setPreviewTheme = useUIStore(state => state.setPreviewTheme);
+
+    useEffect(() => {
+        // When the modal is unmounted (closed), reset any preview
+        return () => {
+            setPreviewTheme(null);
+        };
+    }, [setPreviewTheme]);
 
     if (!isOpen) return null;
 
