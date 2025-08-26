@@ -11,6 +11,14 @@
         theme: {
           extend: {
             colors: {
+              background: 'var(--color-background)',
+              foreground: 'var(--color-foreground)',
+              'text-primary': 'var(--color-text-primary)',
+              'text-secondary': 'var(--color-text-secondary)',
+              border: 'var(--color-border)',
+              'brand-primary': 'var(--color-brand-primary)',
+              'brand-secondary': 'var(--color-brand-secondary)',
+
               'medical-blue': {
                 'light': '#3b82f6',
                 'dark': '#60a5fa',
@@ -23,8 +31,6 @@
                 'light': '#fee2e2',
                 'dark': '#4c2020'
               },
-              'brand-primary': '#1d4ed8',
-              'brand-secondary': '#3b82f6'
             },
             keyframes: {
               'shine': {
@@ -50,6 +56,26 @@
         }
       }
     </script>
+    <style>
+      :root {
+        --color-background: #f1f5f9; /* slate-100 */
+        --color-foreground: #ffffff; /* white */
+        --color-text-primary: #1e293b; /* slate-800 */
+        --color-text-secondary: #64748b; /* slate-500 */
+        --color-border: #e2e8f0; /* slate-200 */
+        --color-brand-primary: #1d4ed8;
+        --color-brand-secondary: #3b82f6;
+      }
+      .dark:root {
+        --color-background: #0f172a; /* gray-900 */
+        --color-foreground: #1e293b; /* gray-800 */
+        --color-text-primary: #e2e8f0; /* slate-200 */
+        --color-text-secondary: #94a3b8; /* slate-400 */
+        --color-border: #334155; /* gray-700 */
+        --color-brand-primary: #3b82f6;
+        --color-brand-secondary: #60a5fa;
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
@@ -65,7 +91,7 @@
 }
 </script>
 </head>
-  <body class="bg-slate-100 dark:bg-gray-900 text-slate-800 dark:text-slate-200">
+  <body class="bg-background text-text-primary">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

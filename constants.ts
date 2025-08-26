@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Badge, PowerUp } from './types';
-import { BadgeId, PowerUpId, QuestType, QuestCategory } from './types';
+import type { Badge, PowerUp, Theme } from './types';
+import { BadgeId, PowerUpId, QuestType, QuestCategory, ThemeId } from './types';
 import { 
     BookOpenIcon, 
     ClipboardListIcon, 
@@ -209,4 +209,67 @@ export const QUEST_TEMPLATES = {
         { id: 'w_maintain_streak_7', category: QuestCategory.MAINTAIN_STREAK, description: 'Duy trì chuỗi học 7 ngày', target: 7, xpReward: 750, coinReward: 500 },
         { id: 'w_complete_quiz_5', category: QuestCategory.COMPLETE_QUIZ, description: 'Hoàn thành 5 bài trắc nghiệm', target: 5, xpReward: 400, coinReward: 200 },
     ]
+};
+
+export const THEMES_DATA: Record<ThemeId, Omit<Theme, 'id'>> = {
+    [ThemeId.DEFAULT]: {
+        name: 'Giao diện Mặc định',
+        price: 0,
+        type: 'light',
+        previewColors: ['#f1f5f9', '#ffffff', '#3b82f6', '#64748b'],
+        colors: { // These are not really used, as the CSS in index.html handles the default
+            '--color-background': '#f1f5f9',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#1e293b',
+            '--color-text-secondary': '#64748b',
+            '--color-border': '#e2e8f0',
+            '--color-brand-primary': '#1d4ed8',
+            '--color-brand-secondary': '#3b82f6',
+        }
+    },
+    [ThemeId.DEEP_OCEAN]: {
+        name: 'Xanh Biển Sâu',
+        price: 1500,
+        type: 'dark',
+        previewColors: ['#0d1b2a', '#1b263b', '#778da9', '#00b4d8'],
+        colors: {
+            '--color-background': '#0d1b2a',
+            '--color-foreground': '#1b263b',
+            '--color-text-primary': '#e0e1dd',
+            '--color-text-secondary': '#778da9',
+            '--color-border': '#415a77',
+            '--color-brand-primary': '#00b4d8',
+            '--color-brand-secondary': '#90e0ef',
+        }
+    },
+    [ThemeId.CHERRY_BLOSSOM]: {
+        name: 'Hoa Anh Đào',
+        price: 2000,
+        type: 'light',
+        previewColors: ['#fff0f3', '#ffffff', '#ffb3c1', '#ff8fab'],
+        colors: {
+            '--color-background': '#fff0f3',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#59484b',
+            '--color-text-secondary': '#8c7b7d',
+            '--color-border': '#ffe5e9',
+            '--color-brand-primary': '#ff8fab',
+            '--color-brand-secondary': '#ffb3c1',
+        }
+    },
+    [ThemeId.SYNTHWAVE]: {
+        name: 'Synthwave',
+        price: 2500,
+        type: 'dark',
+        previewColors: ['#1a103c', '#2c1e5c', '#ff00ff', '#00ffff'],
+        colors: {
+            '--color-background': '#1a103c',
+            '--color-foreground': '#2c1e5c',
+            '--color-text-primary': '#f0f0f0',
+            '--color-text-secondary': '#a097c1',
+            '--color-border': '#4a3d8f',
+            '--color-brand-primary': '#ff00ff',
+            '--color-brand-secondary': '#00ffff',
+        }
+    }
 };

@@ -185,6 +185,31 @@ export interface Quest {
     claimed: boolean;
 }
 
+export enum ThemeId {
+    DEFAULT = 'DEFAULT',
+    DEEP_OCEAN = 'DEEP_OCEAN',
+    CHERRY_BLOSSOM = 'CHERRY_BLOSSOM',
+    SYNTHWAVE = 'SYNTHWAVE',
+}
+
+export interface Theme {
+    id: ThemeId;
+    name: string;
+    price: number;
+    type: 'light' | 'dark';
+    previewColors: string[];
+    colors: {
+        '--color-background': string;
+        '--color-foreground': string;
+        '--color-text-primary': string;
+        '--color-text-secondary': string;
+        '--color-border': string;
+        '--color-brand-primary': string;
+        '--color-brand-secondary': string;
+    };
+}
+
+
 export interface UserData {
     name: string;
     level: number;
@@ -214,4 +239,6 @@ export interface UserData {
     tributeClaimed?: boolean;
     activeBoosts?: Partial<Record<'DOUBLE_XP' | 'DOUBLE_COINS', { expiresAt: number }>>;
     isStreakShieldActive?: boolean;
+    ownedThemes?: ThemeId[];
+    activeTheme?: ThemeId;
 }

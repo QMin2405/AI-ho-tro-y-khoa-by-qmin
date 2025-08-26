@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { UserData, StudyPack, BadgeId, QuizDifficulty, Folder, ChatMessage, QuizSession, LearningMode, SubmittedAnswer, PowerUpId, Quest, QuestType, QuestCategory } from '../types';
-import { BADGES_DATA, XP_ACTIONS, COIN_ACTIONS, QUIZ_DIFFICULTY_POINTS, QUIZ_COMBO_BONUS, HOT_STREAK_THRESHOLD, INQUISITIVE_MIND_THRESHOLD, CONTENT_CURATOR_THRESHOLD, ARCHITECT_THRESHOLD, KNOWLEDGE_LIBRARY_THRESHOLD, INNOVATOR_THRESHOLD, AI_PARTNER_THRESHOLD, LIVING_LEGEND_THRESHOLD, XP_EARNER_1_THRESHOLD, STEEL_BRAIN_THRESHOLD, CONQUEROR_THRESHOLD, PACK_COLORS, POWER_UPS_DATA, QUEST_TEMPLATES } from '../constants';
+import { UserData, StudyPack, BadgeId, QuizDifficulty, Folder, ChatMessage, QuizSession, LearningMode, SubmittedAnswer, PowerUpId, Quest, QuestType, QuestCategory, ThemeId } from '../types';
+import { BADGES_DATA, XP_ACTIONS, COIN_ACTIONS, QUIZ_DIFFICULTY_POINTS, QUIZ_COMBO_BONUS, HOT_STREAK_THRESHOLD, INQUISITIVE_MIND_THRESHOLD, CONTENT_CURATOR_THRESHOLD, ARCHITECT_THRESHOLD, KNOWLEDGE_LIBRARY_THRESHOLD, INNOVATOR_THRESHOLD, AI_PARTNER_THRESHOLD, LIVING_LEGEND_THRESHOLD, XP_EARNER_1_THRESHOLD, STEEL_BRAIN_THRESHOLD, CONQUEROR_THRESHOLD, PACK_COLORS, POWER_UPS_DATA, QUEST_TEMPLATES, THEMES_DATA } from '../constants';
 import { createStudyPack as createStudyPackService, askTutor, generateMoreQuestions as generateMoreQuestionsService } from '../services/geminiService';
 import { useUIStore } from './useUIStore';
 import { exportUserData, getLevelInfo } from '../utils/helpers';
@@ -35,6 +35,8 @@ const initialUserData: UserData = {
         weekly: new Date(0).toISOString().split('T')[0],
     },
     tutorXpGainsToday: { count: 0, date: new Date(0).toISOString().split('T')[0], limitNotified: false },
+    ownedThemes: [ThemeId.DEFAULT],
+    activeTheme: ThemeId.DEFAULT,
 };
 
 // Define the state shape
@@ -94,6 +96,9 @@ interface UserActions {
     buyPowerUp: (powerUpId: PowerUpId) => void;
     usePowerUp: (powerUpId: PowerUpId) => void;
     activatePowerUp: (powerUpId: PowerUpId) => void;
+    // Themes
+    buyTheme: (themeId: ThemeId) => void;
+    setTheme: (themeId: ThemeId) => void;
     // Quests
     refreshQuests: () => void;
     claimQuestReward: (questId: string) => void;
@@ -137,10 +142,10 @@ export const useUserStore = create<UserState & UserActions>()(
                 reader.onload = (event) => {
                     try {
                         const importedData = JSON.parse(event.target?.result as string) as UserData;
-                        // Logic corrected: Load all data from the file, including active boosts.
-                        // The `expiresAt` timestamp within the boost data will determine if it's still valid.
                         if (importedData.name && Array.isArray(importedData.studyPacks)) {
-                            get().setUserData(importedData);
+                            // Merge with initial data to ensure new fields (like themes) have defaults
+                            const finalData = { ...initialUserData, ...importedData };
+                            get().setUserData(finalData);
                             useUIStore.getState().showToast("Dữ liệu đã được khôi phục thành công!");
                         } else { 
                             throw new Error("Invalid data format."); 
@@ -1087,6 +1092,37 @@ export const useUserStore = create<UserState & UserActions>()(
                     }));
                 } else if (powerUpId === PowerUpId.STREAK_SHIELD) {
                     set({ isStreakShieldActive: true });
+                }
+            },
+
+            buyTheme: (themeId) => {
+                const themeData = THEMES_DATA[themeId];
+                if (!themeData) return;
+                const state = get();
+                const ownedThemes = state.ownedThemes || [];
+                if (ownedThemes.includes(themeId)) {
+                    useUIStore.getState().showToast('Bạn đã sở hữu giao diện này!');
+                    return;
+                }
+
+                if (state.stethoCoins >= themeData.price) {
+                    set(s => ({
+                        stethoCoins: s.stethoCoins - themeData.price,
+                        ownedThemes: [...(s.ownedThemes || []), themeId],
+                    }));
+                    useUIStore.getState().showToast(`Đã mua giao diện ${themeData.name}!`);
+                } else {
+                    useUIStore.getState().showToast('Không đủ Stetho Coins!');
+                }
+            },
+
+            setTheme: (themeId) => {
+                const state = get();
+                const ownedThemes = state.ownedThemes || [];
+                if (ownedThemes.includes(themeId)) {
+                    set({ activeTheme: themeId });
+                } else {
+                    console.error("Attempted to set a theme that is not owned.");
                 }
             },
 

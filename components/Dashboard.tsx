@@ -216,7 +216,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
                 draggable={!isEditing} 
                 onDragStart={e => handleDragStart(e, pack.id)}
                 onClick={handlePackClick} 
-                className={`cursor-pointer bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden group transition-all relative ${!isEditing ? 'hover:-translate-y-1' : ''} ${isSelected ? 'ring-2 ring-brand-primary ring-offset-2 dark:ring-offset-gray-900' : ''}`}
+                className={`cursor-pointer bg-foreground rounded-xl shadow-lg overflow-hidden group transition-all relative ${!isEditing ? 'hover:-translate-y-1' : ''} ${isSelected ? 'ring-2 ring-brand-primary ring-offset-2 dark:ring-offset-background' : ''}`}
             >
                 <div className="absolute top-2 right-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
                     <button
@@ -226,21 +226,21 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
                             setEditingPackState({ title: pack.title, color: pack.color || 'slate', icon: pack.icon || '' });
                         }}
                         aria-label="Chỉnh sửa gói học tập"
-                        className="p-1.5 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm"
+                        className="p-1.5 rounded-full text-text-secondary hover:bg-background/80 bg-foreground/50 backdrop-blur-sm"
                     >
                         <PencilIcon className="w-4 h-4" />
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); requestSoftDelete(pack.id, 'pack'); }}
                         aria-label="Xóa gói học tập"
-                        className="p-1.5 ml-1 rounded-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm"
+                        className="p-1.5 ml-1 rounded-full text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/50 bg-foreground/50 backdrop-blur-sm"
                     >
                         <TrashIcon className="w-4 h-4" />
                     </button>
                 </div>
                 <div className={`h-32 ${packColor.bg} ${packColor.text} flex items-center justify-center transition-colors`}>
                     {isEditing ? (
-                        <div className="grid grid-cols-4 gap-1 p-2">
+                        <div className="grid grid-cols-5 gap-1 p-2">
                             {FOLDER_ICONS.map(iconKey => {
                                 const IconComponent = ICON_MAP[iconKey];
                                 const isSelectedIcon = editingPackState.icon === iconKey;
@@ -283,16 +283,16 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
                                         key={color.key}
                                         onMouseDown={(e) => e.preventDefault()}
                                         onClick={(e) => {e.stopPropagation(); setEditingPackState(s => ({...s, color: color.key}))}}
-                                        className={`w-6 h-6 rounded-full ${color.bg} ${editingPackState.color === color.key ? 'ring-2 ring-offset-2 dark:ring-offset-gray-800 ring-current' : ''}`}
+                                        className={`w-6 h-6 rounded-full ${color.bg} ${editingPackState.color === color.key ? 'ring-2 ring-offset-2 dark:ring-offset-foreground ring-current' : ''}`}
                                     ></button>
                                 ))}
                             </div>
                         ) : (
                             <>
-                                <div className="w-full bg-slate-200 dark:bg-gray-700 rounded-full h-2.5">
+                                <div className="w-full bg-border rounded-full h-2.5">
                                     <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${pack.progress || 0}%` }}></div>
                                 </div>
-                                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 w-10 text-right">{Math.round(pack.progress || 0)}%</span>
+                                <span className="text-xs font-mono text-text-secondary w-10 text-right">{Math.round(pack.progress || 0)}%</span>
                             </>
                         )}
                     </div>
@@ -371,7 +371,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
                                     key={iconKey}
                                     onMouseDown={(e) => e.preventDefault()}
                                     onClick={(e) => { e.stopPropagation(); setEditingFolderIcon(iconKey); }}
-                                    className={`p-2 rounded-full transition-colors ${isSelected ? `ring-2 ring-offset-2 dark:ring-offset-gray-900 ${color.border}` : ''} hover:bg-slate-200/50 dark:hover:bg-slate-700/50`}
+                                    className={`p-2 rounded-full transition-colors ${isSelected ? `ring-2 ring-offset-2 dark:ring-offset-background ${color.border}` : ''} hover:bg-slate-200/50 dark:hover:bg-slate-700/50`}
                                 >
                                     <IconComponent className="w-5 h-5" />
                                 </button>
@@ -397,7 +397,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
         
         return (
              <div className="container mx-auto p-6 animate-fade-in" onClick={handleContainerClick}>
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-500 dark:text-slate-400 mb-6">
+                <div className="flex items-center gap-2 text-sm font-semibold text-text-secondary mb-6">
                     <button
                         onClick={(e) => { e.stopPropagation(); onSetCurrentFolderId(null); }}
                         onDrop={(e) => handleDrop(e, null)}
@@ -412,7 +412,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
                         <React.Fragment key={crumb.id}>
                             <span className="text-slate-400 dark:text-slate-600">/</span>
                             {index === breadcrumbs.length - 1 ? (
-                                <span className="font-bold text-slate-700 dark:text-slate-200" onClick={(e) => e.stopPropagation()}>{crumb.name}</span>
+                                <span className="font-bold text-text-primary" onClick={(e) => e.stopPropagation()}>{crumb.name}</span>
                             ) : (
                                 <button onClick={(e) => { e.stopPropagation(); onSetCurrentFolderId(crumb.id); }} className="hover:text-brand-primary">{crumb.name}</button>
                             )}
@@ -421,7 +421,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
                 </div>
                 
                 <div className="flex justify-between items-center mb-8" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-4 text-2xl font-bold text-slate-800 dark:text-slate-100 group">
+                    <div className="flex items-center gap-4 text-2xl font-bold text-text-primary group">
                          {isEditingCurrentFolder ? (
                             <div className="flex items-center gap-2">
                                 <input
@@ -449,7 +449,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
                                     setEditingFolderName(currentFolder.name);
                                     setEditingFolderIcon(currentFolder.icon);
                                 }}
-                                className="p-1 rounded-full text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                className="p-1 rounded-full text-text-secondary/50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                             >
                                 <PencilIcon className="w-5 h-5" />
                             </button>
@@ -465,7 +465,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
 
                  {subfolders.length > 0 && (
                     <div className="mb-10">
-                         <h3 className="text-xl font-bold mb-4 text-slate-700 dark:text-slate-200">Thư mục con</h3>
+                         <h3 className="text-xl font-bold mb-4 text-text-primary">Thư mục con</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {subfolders.map(renderFolder)}
                         </div>
@@ -473,16 +473,16 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
                  )}
 
                  <div className="mb-10">
-                     <h3 className="text-xl font-bold mb-4 text-slate-700 dark:text-slate-200">Gói học tập</h3>
+                     <h3 className="text-xl font-bold mb-4 text-text-primary">Gói học tập</h3>
                     {packsInFolder.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {packsInFolder.map(renderStudyPack)}
                         </div>
                     ) : (
-                         <div className="text-center py-12 px-6 bg-slate-50 dark:bg-gray-800/50 rounded-xl border-2 border-dashed border-slate-300 dark:border-gray-600">
-                            <BookOpenIcon className="w-12 h-12 mx-auto text-slate-400 mb-2" />
-                            <p className="text-slate-500 dark:text-slate-400 font-semibold">Thư mục này trống.</p>
-                             <p className="text-slate-400 dark:text-slate-500 text-sm">Thả các gói học tập vào đây hoặc tạo một gói mới.</p>
+                         <div className="text-center py-12 px-6 bg-background rounded-xl border-2 border-dashed border-border">
+                            <BookOpenIcon className="w-12 h-12 mx-auto text-text-secondary/50 mb-2" />
+                            <p className="text-text-secondary font-semibold">Thư mục này trống.</p>
+                             <p className="text-text-secondary/80 text-sm">Thả các gói học tập vào đây hoặc tạo một gói mới.</p>
                         </div>
                     )}
                  </div>
@@ -499,7 +499,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
     <div className="container mx-auto p-6" onClick={handleContainerClick}>
         <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
-                <button onClick={onCreateNew} className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm">
+                <button onClick={onCreateNew} className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg font-semibold hover:opacity-90 transition-opacity shadow-sm">
                     <PlusIcon className="w-5 h-5" />
                     <span>Tạo Gói Mới</span>
                 </button>
@@ -508,7 +508,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
                     <span>Tạo Thư Mục</span>
                 </button>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); onOpenTrash(); }} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-gray-700 font-semibold text-sm text-slate-600 dark:text-slate-300">
+            <button onClick={(e) => { e.stopPropagation(); onOpenTrash(); }} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-foreground font-semibold text-sm text-text-secondary">
                 <TrashIcon className="w-5 h-5" />
                 <span>Thùng rác</span>
             </button>
@@ -517,12 +517,12 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
         {showTips && renderTipsBox()}
 
         <div className="mb-10">
-            <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100">Gói học tập</h2>
+            <h2 className="text-2xl font-bold mb-4 text-text-primary">Gói học tập</h2>
             {rootPacks.length === 0 ? (
-                <div className="text-center py-12 px-6 bg-slate-50 dark:bg-gray-800/50 rounded-xl border-2 border-dashed border-slate-300 dark:border-gray-600">
-                    <BookOpenIcon className="w-12 h-12 mx-auto text-slate-400 mb-2" />
-                    <p className="text-slate-500 dark:text-slate-400 font-semibold">Chưa có gói học tập nào.</p>
-                    <p className="text-slate-400 dark:text-slate-500 text-sm">Nhấn "Tạo Gói Mới" để bắt đầu.</p>
+                <div className="text-center py-12 px-6 bg-background rounded-xl border-2 border-dashed border-border">
+                    <BookOpenIcon className="w-12 h-12 mx-auto text-text-secondary/50 mb-2" />
+                    <p className="text-text-secondary font-semibold">Chưa có gói học tập nào.</p>
+                    <p className="text-text-secondary/80 text-sm">Nhấn "Tạo Gói Mới" để bắt đầu.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -532,12 +532,12 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
         </div>
 
         <div>
-            <h2 className="text-2xl font-bold mb-4 text-slate-800 dark:text-slate-100">Thư mục</h2>
+            <h2 className="text-2xl font-bold mb-4 text-text-primary">Thư mục</h2>
             {rootFolders.length === 0 ? (
-                 <div className="text-center py-12 px-6 bg-slate-50 dark:bg-gray-800/50 rounded-xl border-2 border-dashed border-slate-300 dark:border-gray-600">
-                    <FolderIcon className="w-12 h-12 mx-auto text-slate-400 mb-2" />
-                    <p className="text-slate-500 dark:text-slate-400 font-semibold">Chưa có thư mục nào.</p>
-                    <p className="text-slate-400 dark:text-slate-500 text-sm">Nhấn "Tạo Thư Mục" để sắp xếp các gói học tập của bạn.</p>
+                 <div className="text-center py-12 px-6 bg-background rounded-xl border-2 border-dashed border-border">
+                    <FolderIcon className="w-12 h-12 mx-auto text-text-secondary/50 mb-2" />
+                    <p className="text-text-secondary font-semibold">Chưa có thư mục nào.</p>
+                    <p className="text-text-secondary/80 text-sm">Nhấn "Tạo Thư Mục" để sắp xếp các gói học tập của bạn.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

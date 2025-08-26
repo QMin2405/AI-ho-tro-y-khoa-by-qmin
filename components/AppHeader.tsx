@@ -3,6 +3,7 @@ import { useUserStore } from '../store/useUserStore';
 import { getLevelInfo } from '../utils/helpers';
 import { CpuChipIcon, FireIcon, BadgeCheckIcon, SunIcon, MoonIcon, HeartIcon, MaximizeIcon, RestoreDownIcon, CoinIcon, ShoppingCartIcon, ClipboardCheckIcon, ShoppingBagIcon, ShieldCheckIcon, BoltIcon } from './icons';
 import { BADGES_DATA } from '../constants';
+import { ThemeId } from '../types';
 
 export const AppHeader = ({ 
     onToggleDark, isDarkMode, onProfileClick, onStreakClick, onXpBarClick, 
@@ -21,8 +22,10 @@ export const AppHeader = ({
     const hasClaimableQuests = useUserStore(state => state.activeQuests.some(q => !q.claimed && q.progress >= q.target));
     const activeBoosts = useUserStore(state => state.activeBoosts);
     const isStreakShieldActive = useUserStore(state => state.isStreakShieldActive);
+    const activeThemeId = useUserStore(state => state.activeTheme);
     
     const { level, name: levelName, progress, nextLevelXP } = getLevelInfo(xp);
+    const isDefaultTheme = !activeThemeId || activeThemeId === ThemeId.DEFAULT;
 
     const latestBadgeId = unlockedBadges.length > 0 ? unlockedBadges[unlockedBadges.length - 1] : null;
     const latestBadge = latestBadgeId ? BADGES_DATA[latestBadgeId] : null;
@@ -66,22 +69,22 @@ export const AppHeader = ({
     };
 
     return (
-        <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm sticky top-0 z-20 shadow-md p-3">
+        <header className="bg-foreground/80 backdrop-blur-sm sticky top-0 z-20 shadow-md p-3 border-b border-border">
             <div className="container mx-auto flex justify-between items-center">
                 <div
-                    className={`flex items-center gap-3 rounded-lg -m-2 p-2 transition-colors ${!isAtHome ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-gray-700/50' : ''}`}
+                    className={`flex items-center gap-3 rounded-lg -m-2 p-2 transition-colors ${!isAtHome ? 'cursor-pointer hover:bg-background/50' : ''}`}
                     onClick={!isAtHome ? onHomeClick : undefined}
                     role={!isAtHome ? "button" : undefined}
                     tabIndex={!isAtHome ? 0 : undefined}
                     onKeyDown={!isAtHome ? (e) => { if (e.key === 'Enter' || e.key === ' ') onHomeClick() } : undefined}
                     aria-label={!isAtHome ? "Về trang chủ" : undefined}
                 >
-                    <div className="p-2 bg-brand-primary/10 dark:bg-brand-primary/20 rounded-lg">
+                    <div className="p-2 bg-brand-primary/10 rounded-lg">
                         <CpuChipIcon className="w-7 h-7 text-brand-primary"/>
                     </div>
                     <div className="group" style={{ pointerEvents: 'none' }}>
                         <h1 className="text-xl font-bold text-brand-primary">AI hỗ trợ Y khoa</h1>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 -mt-0.5">
+                        <div className="text-xs text-text-secondary flex items-center gap-1.5 -mt-0.5">
                             <span>Created by</span>
                             <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-500">
                                 QMin
@@ -92,12 +95,12 @@ export const AppHeader = ({
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                     <div className="flex-grow max-w-xs w-full">
-                        <button onClick={onXpBarClick} className="w-full text-left group rounded-lg p-1 transition-colors hover:bg-slate-100 dark:hover:bg-gray-700/50">
+                        <button onClick={onXpBarClick} className="w-full text-left group rounded-lg p-1 transition-colors hover:bg-background/50">
                             <div className="flex justify-between items-center mb-1">
-                                <span className="font-semibold text-slate-600 dark:text-slate-300">{name} - Cấp {level} ({levelName})</span>
-                                <span className="text-xs font-mono">{xp} / {nextLevelXP} XP</span>
+                                <span className="font-semibold text-text-primary">{name} - Cấp {level} ({levelName})</span>
+                                <span className="text-xs font-mono text-text-secondary">{xp} / {nextLevelXP} XP</span>
                             </div>
-                            <div className="w-full bg-slate-200 dark:bg-gray-700 rounded-full h-2.5">
+                            <div className="w-full bg-border rounded-full h-2.5">
                                 <div className="bg-brand-secondary h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
                             </div>
                         </button>
@@ -119,24 +122,24 @@ export const AppHeader = ({
                             </div>
                         )}
                     </div>
-                     <button onClick={onShopClick} className={`flex items-center gap-1 font-bold p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors text-yellow-500`}>
+                     <button onClick={onShopClick} className={`flex items-center gap-1 font-bold p-2 rounded-lg hover:bg-background transition-colors text-yellow-500`}>
                         <CoinIcon className="w-5 h-5" />
                         <span>{stethoCoins}</span>
                     </button>
-                     <button onClick={onStreakClick} className={`flex items-center gap-1 font-bold p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors ${streak > 0 ? 'text-orange-500' : 'text-slate-400 dark:text-slate-500'}`}>
+                     <button onClick={onStreakClick} className={`flex items-center gap-1 font-bold p-2 rounded-lg hover:bg-background transition-colors ${streak > 0 ? 'text-orange-500' : 'text-text-secondary'}`}>
                         <FireIcon className="w-5 h-5" />
                         <span>{streak}</span>
                     </button>
-                     <button onClick={onQuestsClick} className="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors">
+                     <button onClick={onQuestsClick} className="relative p-2 rounded-full hover:bg-background transition-colors">
                         <ClipboardCheckIcon className="w-6 h-6" />
                         {hasClaimableQuests && (
-                            <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800"></span>
+                            <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-foreground"></span>
                         )}
                     </button>
-                     <button onClick={onInventoryClick} className="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors">
+                     <button onClick={onInventoryClick} className="relative p-2 rounded-full hover:bg-background transition-colors">
                         <ShoppingBagIcon className="w-6 h-6" />
                     </button>
-                    <button onClick={onProfileClick} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors relative group">
+                    <button onClick={onProfileClick} className="p-2 rounded-full hover:bg-background transition-colors relative group">
                         <BadgeDisplay />
                         {latestBadge && (
                              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max max-w-xs bg-gray-900 text-white text-xs rounded py-1.5 px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap">
@@ -144,10 +147,10 @@ export const AppHeader = ({
                             </div>
                         )}
                     </button>
-                    <button onClick={onToggleDark} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors">
-                        {isDarkMode ? <SunIcon className="w-6 h-6 text-yellow-400" /> : <MoonIcon className="w-6 h-6 text-slate-700" />}
+                    <button onClick={onToggleDark} disabled={!isDefaultTheme} className="p-2 rounded-full hover:bg-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        {isDarkMode ? <SunIcon className="w-6 h-6 text-yellow-400" /> : <MoonIcon className="w-6 h-6" />}
                     </button>
-                    <button onClick={handleToggleFullscreen} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors">
+                    <button onClick={handleToggleFullscreen} className="p-2 rounded-full hover:bg-background transition-colors">
                         {isFullscreen ? <RestoreDownIcon className="w-6 h-6" /> : <MaximizeIcon className="w-6 h-6" />}
                     </button>
                 </div>
