@@ -628,7 +628,6 @@ export const useUserStore = create<UserState & UserActions>()(
                 get().checkAndAwardBadges();
             },
             
-            // Fix: Add explicit type annotation for the 'options' parameter to resolve property access error.
             generateMoreQuestions: async (packId: string, isM2Style: boolean, options: { startNewSessionWithNewQuestions?: boolean } = {}) => {
                 const { startNewSessionWithNewQuestions = false } = options;
                 const pack = get().studyPacks.find(p => p.id === packId);
@@ -722,15 +721,18 @@ export const useUserStore = create<UserState & UserActions>()(
                     tutorXpData = { count: 0, date: today, limitNotified: false };
                 }
 
+                const userMessage: Types.ChatMessage = { sender: 'user', text: message };
                 set(state => ({
                     isTutorLoading: true,
-                    tutorMessages: [...state.tutorMessages, { sender: 'user', text: message }],
+                    tutorMessages: [...state.tutorMessages, userMessage],
                 }));
 
                 const fullLessonContext = get().studyPacks.map(p => p.lesson.map(l => l.content).join('\n')).join('\n\n');
+                const currentHistory = get().tutorMessages;
+                const currentQuestionContext = get().tutorContext;
                 
                 try {
-                    const response = await askTutor(fullLessonContext, message, get().tutorContext);
+                    const response = await askTutor(currentHistory, fullLessonContext, currentQuestionContext);
                     set(state => ({
                         tutorMessages: [...state.tutorMessages, { sender: 'ai', text: response }],
                         questionsAskedCount: state.questionsAskedCount + 1,
