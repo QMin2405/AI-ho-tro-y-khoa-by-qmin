@@ -146,12 +146,7 @@ export interface ChatMessage {
 
 export enum PowerUpId {
     FIFTY_FIFTY = 'FIFTY_FIFTY',
-    XP_BOOSTER = 'XP_BOOSTER',
-    STREAK_SHIELD = 'STREAK_SHIELD',
-    COIN_BOOSTER = 'COIN_BOOSTER',
-    SECOND_OPINION = 'SECOND_OPINION',
 }
-
 
 export interface PowerUp {
     id: PowerUpId;
@@ -212,6 +207,5 @@ export interface UserData {
         daily: string;
         weekly: string;
     };
-    boostedPackIds?: string[];
-    coinBoostExpiry?: string | null;
+    tributeClaimed?: boolean;
 }
