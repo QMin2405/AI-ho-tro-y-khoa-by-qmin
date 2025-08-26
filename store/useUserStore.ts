@@ -714,31 +714,37 @@ export const useUserStore = create<UserState & UserActions>()(
             
             sendMessageToTutor: async (message) => {
                 if (get().isTutorLoading) return;
-                
+            
                 const today = new Date().toISOString().split('T')[0];
                 let tutorXpData = get().tutorXpGainsToday || { count: 0, date: today, limitNotified: false };
                 if (tutorXpData.date !== today) {
                     tutorXpData = { count: 0, date: today, limitNotified: false };
                 }
-
+            
                 const userMessage: Types.ChatMessage = { sender: 'user', text: message };
-                set(state => ({
-                    isTutorLoading: true,
-                    tutorMessages: [...state.tutorMessages, userMessage],
-                }));
-
-                const fullLessonContext = get().studyPacks.map(p => p.lesson.map(l => l.content).join('\n')).join('\n\n');
-                const currentHistory = get().tutorMessages;
-                const currentQuestionContext = get().tutorContext;
                 
+                // Create the updated history *before* setting state and making the API call
+                const updatedHistory = [...get().tutorMessages, userMessage];
+            
+                set({
+                    isTutorLoading: true,
+                    tutorMessages: updatedHistory,
+                });
+            
+                const fullLessonContext = get().studyPacks.map(p => p.lesson.map(l => l.content).join('\n')).join('\n\n');
+                const currentQuestionContext = get().tutorContext;
+            
                 try {
-                    const response = await askTutor(currentHistory, fullLessonContext, currentQuestionContext);
+                    // Use the updated history for the API call
+                    const response = await askTutor(updatedHistory, fullLessonContext, currentQuestionContext);
+            
                     set(state => ({
                         tutorMessages: [...state.tutorMessages, { sender: 'ai', text: response }],
                         questionsAskedCount: state.questionsAskedCount + 1,
                     }));
+            
                     get().handleActivity();
-
+            
                     if (tutorXpData.count < 10) {
                         get().addXp(XP_ACTIONS.ASK_AI);
                         set({ tutorXpGainsToday: { ...tutorXpData, count: tutorXpData.count + 1 } });
@@ -746,7 +752,7 @@ export const useUserStore = create<UserState & UserActions>()(
                         useUIStore.getState().showToast("Bạn đã đạt giới hạn XP nhận được từ Gia sư AI hôm nay.");
                         set({ tutorXpGainsToday: { ...tutorXpData, limitNotified: true } });
                     }
-
+            
                 } catch (error) {
                     set(state => ({
                         tutorMessages: [...state.tutorMessages, { sender: 'ai', text: "Xin lỗi, tôi gặp lỗi khi xử lý yêu cầu của bạn." }],
