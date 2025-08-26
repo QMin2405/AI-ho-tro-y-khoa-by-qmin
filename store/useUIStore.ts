@@ -37,22 +37,23 @@ export const useUIStore = create<UIState>((set) => ({
     showToast: (message) => set({ toast: { message, id: Date.now() } }),
     hideToast: () => set({ toast: null }),
     confirmModal: initialConfirmModalState,
-    showConfirmModal: (config) => set(state => ({
-        confirmModal: {
-            ...initialConfirmModalState,
-            ...config,
-            isOpen: true,
-            // Wrap onCancel to automatically close the modal
-            onCancel: () => {
-                state.hideConfirmModal();
-            },
-            // Wrap onConfirm to execute the action then close the modal
-            onConfirm: () => {
-                config.onConfirm();
-                state.hideConfirmModal();
-            },
-        }
-    })),
+    showConfirmModal: (config) => {
+        const hide = () => set({ confirmModal: initialConfirmModalState });
+        set({
+            confirmModal: {
+                ...initialConfirmModalState,
+                ...config,
+                isOpen: true,
+                onCancel: () => {
+                    hide();
+                },
+                onConfirm: () => {
+                    config.onConfirm();
+                    hide();
+                },
+            }
+        });
+    },
     hideConfirmModal: () => set({ confirmModal: initialConfirmModalState }),
     previewThemeId: null,
     setPreviewTheme: (themeId) => set({ previewThemeId: themeId }),

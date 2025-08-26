@@ -52,7 +52,7 @@ const ThemesTab = () => {
         buyTheme: state.buyTheme,
         setTheme: state.setTheme,
     }));
-    const { setPreviewTheme, showConfirmModal } = useUIStore();
+    const { previewThemeId, setPreviewTheme, showConfirmModal } = useUIStore();
 
     const handleBuyClick = (e: React.MouseEvent, themeId: ThemeId, theme: typeof THEMES_DATA[ThemeId]) => {
         e.stopPropagation();
@@ -66,6 +66,15 @@ const ThemesTab = () => {
             },
             isDestructive: false,
         });
+    };
+
+    const handleThemeClick = (themeId: ThemeId) => {
+        // If clicking the same theme again, cancel preview. Otherwise, set new preview.
+        if (previewThemeId === themeId) {
+            setPreviewTheme(null);
+        } else {
+            setPreviewTheme(themeId);
+        }
     };
 
     return (
@@ -106,7 +115,7 @@ const ThemesTab = () => {
                 };
 
                 return (
-                     <div key={id} onClick={() => setPreviewTheme(themeId)} className="bg-background rounded-lg p-4 flex flex-col gap-4 border border-border cursor-pointer hover:border-brand-primary transition-colors">
+                     <div key={id} onClick={() => handleThemeClick(themeId)} className="bg-background rounded-lg p-4 flex flex-col gap-4 border border-border cursor-pointer hover:border-brand-primary transition-colors">
                         <div className="flex-grow">
                              <div className="flex items-center justify-between">
                                 <h3 className="font-bold text-lg">{theme.name}</h3>

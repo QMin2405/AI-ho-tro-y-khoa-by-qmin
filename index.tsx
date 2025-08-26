@@ -63,11 +63,8 @@ const App = () => {
             document.documentElement.style.setProperty(key, value as string);
         });
 
-        if (isDarkMode) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
+        document.documentElement.classList.toggle('dark', isDarkMode);
+
     }, [activeThemeId, previewThemeId, isDarkMode]);
 
 
