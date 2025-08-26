@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../../store/useUserStore';
-import { POWER_UPS_DATA } from '../../constants';
-import { PowerUpId } from '../../types';
-import { XIcon, ShoppingBagIcon, ClockIcon } from '../icons';
+import { POWER_UPS_DATA, THEMES_DATA } from '../../constants';
+import { PowerUpId, ThemeId } from '../../types';
+import { XIcon, ShoppingBagIcon, ClockIcon, SparklesIcon, CheckCircleIcon } from '../icons';
 
 const formatTime = (ms: number) => {
     if (ms <= 0) return '00:00:00';
@@ -14,7 +14,15 @@ const formatTime = (ms: number) => {
 };
 
 export const InventoryModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void; }) => {
-    const { inventory, activeBoosts, isStreakShieldActive, activatePowerUp } = useUserStore();
+    const { 
+        inventory, 
+        activeBoosts, 
+        isStreakShieldActive, 
+        activatePowerUp,
+        ownedThemes,
+        activeTheme,
+        setTheme,
+    } = useUserStore();
     const [currentTime, setCurrentTime] = useState(Date.now());
 
     useEffect(() => {
@@ -36,20 +44,21 @@ export const InventoryModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
 
     const hasActiveEffects = isDoubleXpActive || isDoubleCoinsActive || isStreakShieldActive;
     const hasItems = ownedPowerUps.length > 0;
+    const hasOwnedThemes = ownedThemes && ownedThemes.length > 1; // More than just the default
 
     return (
         <div className="fixed inset-0 bg-black/60 z-30 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all animate-fade-in flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                <div className="p-6 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center">
+            <div className="bg-foreground rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all animate-fade-in flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-border flex justify-between items-center">
                     <h2 className="text-2xl font-bold flex items-center gap-3"><ShoppingBagIcon className="w-7 h-7" /> Túi đồ</h2>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700"><XIcon /></button>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-background"><XIcon /></button>
                 </div>
                 <div className="p-6 overflow-y-auto">
-                    {!hasItems && !hasActiveEffects ? (
+                    {!hasItems && !hasActiveEffects && !hasOwnedThemes ? (
                         <div className="text-center py-12">
-                            <ShoppingBagIcon className="w-12 h-12 mx-auto text-slate-400 mb-2" />
-                            <p className="text-slate-500 dark:text-slate-400 font-semibold">Túi đồ trống.</p>
-                            <p className="text-sm text-slate-400">Hãy mua vật phẩm từ cửa hàng để sử dụng.</p>
+                            <ShoppingBagIcon className="w-12 h-12 mx-auto text-text-secondary/50 mb-2" />
+                            <p className="text-text-secondary font-semibold">Túi đồ trống.</p>
+                            <p className="text-text-secondary/80 text-sm">Hãy mua vật phẩm từ cửa hàng để sử dụng.</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
@@ -61,13 +70,13 @@ export const InventoryModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
                                 const isActive = (id === PowerUpId.DOUBLE_XP && isDoubleXpActive) || (id === PowerUpId.DOUBLE_COINS && isDoubleCoinsActive) || (id === PowerUpId.STREAK_SHIELD && isStreakShieldActive);
 
                                 return (
-                                    <div key={id} className="bg-slate-50 dark:bg-gray-700/50 rounded-lg p-4 flex items-center gap-4">
-                                        <div className="p-3 bg-slate-200 dark:bg-gray-600 rounded-lg text-brand-primary">
+                                    <div key={id} className="bg-background rounded-lg p-4 flex items-center gap-4">
+                                        <div className="p-3 bg-foreground rounded-lg text-brand-primary">
                                             {React.cloneElement(powerUp.icon, { className: 'w-8 h-8' })}
                                         </div>
                                         <div className="flex-grow">
-                                            <h3 className="font-bold text-lg">{powerUp.name} <span className="text-sm font-normal text-slate-500 dark:text-slate-400">x{count}</span></h3>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400">{powerUp.description}</p>
+                                            <h3 className="font-bold text-lg">{powerUp.name} <span className="text-sm font-normal text-text-secondary">x{count}</span></h3>
+                                            <p className="text-sm text-text-secondary">{powerUp.description}</p>
                                         </div>
                                         {isActivatable && (
                                             <button 
@@ -84,7 +93,7 @@ export const InventoryModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
                         </div>
                     )}
                      {hasActiveEffects && (
-                        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-gray-700">
+                        <div className="mt-6 pt-6 border-t border-border">
                             <h3 className="font-bold text-lg mb-2">Hiệu ứng đang hoạt động</h3>
                             <div className="space-y-2 text-sm">
                                 {isDoubleXpActive && (
@@ -107,6 +116,41 @@ export const InventoryModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
                                         <span>Khiên Bảo vệ Chuỗi đang hoạt động.</span>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+                     {hasOwnedThemes && (
+                         <div className="mt-6 pt-6 border-t border-border">
+                            <h3 className="font-bold text-lg mb-2">Giao diện đã sở hữu</h3>
+                             <div className="space-y-3">
+                                {ownedThemes?.map(themeId => {
+                                    const theme = THEMES_DATA[themeId];
+                                    if (!theme) return null;
+                                    const isActive = activeTheme === themeId;
+                                    return (
+                                        <div key={themeId} className="bg-background rounded-lg p-4 flex items-center gap-4">
+                                            <div className="flex items-center gap-1.5 p-2 bg-foreground rounded-lg">
+                                                {theme.previewColors.map((color, i) => (
+                                                    <div key={i} className="w-6 h-6 rounded-full" style={{ backgroundColor: color }}></div>
+                                                ))}
+                                            </div>
+                                            <div className="flex-grow">
+                                                <h4 className="font-bold text-base">{theme.name}</h4>
+                                            </div>
+                                            {isActive ? (
+                                                <button disabled className="px-4 py-2 text-white rounded-lg font-semibold flex items-center justify-center gap-2 bg-green-500 cursor-default min-w-[120px]">
+                                                    <CheckCircleIcon className="w-5 h-5"/>
+                                                    <span>Đang dùng</span>
+                                                </button>
+                                            ) : (
+                                                <button onClick={() => setTheme(themeId)} className="px-4 py-2 bg-brand-secondary text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity min-w-[120px]">
+                                                    <SparklesIcon className="w-5 h-5"/>
+                                                    <span>Trang bị</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    )
+                                })}
                             </div>
                         </div>
                     )}
