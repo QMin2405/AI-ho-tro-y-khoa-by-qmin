@@ -628,6 +628,7 @@ export const useUserStore = create<UserState & UserActions>()(
                 get().checkAndAwardBadges();
             },
             
+            // Fix: Add explicit type annotation for the 'options' parameter to resolve property access error.
             generateMoreQuestions: async (packId: string, isM2Style: boolean, options: { startNewSessionWithNewQuestions?: boolean } = {}) => {
                 const { startNewSessionWithNewQuestions = false } = options;
                 const pack = get().studyPacks.find(p => p.id === packId);
@@ -714,37 +715,28 @@ export const useUserStore = create<UserState & UserActions>()(
             
             sendMessageToTutor: async (message) => {
                 if (get().isTutorLoading) return;
-            
-                const userMessage: Types.ChatMessage = { sender: 'user', text: message };
-            
-                // Cập nhật trạng thái một cách nguyên tử với tin nhắn mới của người dùng
-                // và chuẩn bị lịch sử đầy đủ cho lệnh gọi API trong một bước.
-                const fullHistoryForAPI = [...get().tutorMessages, userMessage];
                 
-                set({
+                const today = new Date().toISOString().split('T')[0];
+                let tutorXpData = get().tutorXpGainsToday || { count: 0, date: today, limitNotified: false };
+                if (tutorXpData.date !== today) {
+                    tutorXpData = { count: 0, date: today, limitNotified: false };
+                }
+
+                set(state => ({
                     isTutorLoading: true,
-                    tutorMessages: fullHistoryForAPI, // Hiển thị tin nhắn người dùng trong UI ngay lập tức
-                });
-            
+                    tutorMessages: [...state.tutorMessages, { sender: 'user', text: message }],
+                }));
+
+                const fullLessonContext = get().studyPacks.map(p => p.lesson.map(l => l.content).join('\n')).join('\n\n');
+                
                 try {
-                    const fullLessonContext = get().studyPacks.map(p => p.lesson.map(l => l.content).join('\n')).join('\n\n');
-                    const currentQuestionContext = get().tutorContext;
-            
-                    // Sử dụng biến lịch sử đã chuẩn bị cho lệnh gọi API.
-                    const response = await askTutor(fullHistoryForAPI, fullLessonContext, currentQuestionContext);
-            
+                    const response = await askTutor(fullLessonContext, message, get().tutorContext);
                     set(state => ({
                         tutorMessages: [...state.tutorMessages, { sender: 'ai', text: response }],
                         questionsAskedCount: state.questionsAskedCount + 1,
                     }));
-            
                     get().handleActivity();
-            
-                    // Xử lý việc nhận XP
-                    const today = new Date().toISOString().split('T')[0];
-                    let tutorXpData = get().tutorXpGainsToday || { count: 0, date: today };
-                    if (tutorXpData.date !== today) tutorXpData = { count: 0, date: today };
-                    
+
                     if (tutorXpData.count < 10) {
                         get().addXp(XP_ACTIONS.ASK_AI);
                         set({ tutorXpGainsToday: { ...tutorXpData, count: tutorXpData.count + 1 } });
@@ -752,7 +744,7 @@ export const useUserStore = create<UserState & UserActions>()(
                         useUIStore.getState().showToast("Bạn đã đạt giới hạn XP nhận được từ Gia sư AI hôm nay.");
                         set({ tutorXpGainsToday: { ...tutorXpData, limitNotified: true } });
                     }
-            
+
                 } catch (error) {
                     set(state => ({
                         tutorMessages: [...state.tutorMessages, { sender: 'ai', text: "Xin lỗi, tôi gặp lỗi khi xử lý yêu cầu của bạn." }],
