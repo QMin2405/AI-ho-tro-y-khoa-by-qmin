@@ -628,8 +628,7 @@ export const useUserStore = create<UserState & UserActions>()(
                 get().checkAndAwardBadges();
             },
             
-            // FIX: Explicitly type the `options` parameter to match the UserActions interface definition.
-            generateMoreQuestions: async (packId: string, isM2Style: boolean, options: { startNewSessionWithNewQuestions?: boolean } = {}) => {
+            generateMoreQuestions: async (packId, isM2Style, options = {}) => {
                 const { startNewSessionWithNewQuestions = false } = options;
                 const pack = get().studyPacks.find(p => p.id === packId);
                 if (!pack) return;

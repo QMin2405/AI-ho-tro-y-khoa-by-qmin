@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { ThemeId } from '../types';
 
 type ConfirmModalState = {
     isOpen: boolean;
@@ -18,8 +17,6 @@ type UIState = {
     confirmModal: ConfirmModalState;
     showConfirmModal: (config: Omit<ConfirmModalState, 'isOpen' | 'onCancel'>) => void;
     hideConfirmModal: () => void;
-    previewThemeId: ThemeId | null;
-    setPreviewTheme: (themeId: ThemeId | null) => void;
 };
 
 const initialConfirmModalState: ConfirmModalState = {
@@ -37,24 +34,21 @@ export const useUIStore = create<UIState>((set) => ({
     showToast: (message) => set({ toast: { message, id: Date.now() } }),
     hideToast: () => set({ toast: null }),
     confirmModal: initialConfirmModalState,
-    showConfirmModal: (config) => {
-        const hide = () => set({ confirmModal: initialConfirmModalState });
-        set({
-            confirmModal: {
-                ...initialConfirmModalState,
-                ...config,
-                isOpen: true,
-                onCancel: () => {
-                    hide();
-                },
-                onConfirm: () => {
-                    config.onConfirm();
-                    hide();
-                },
-            }
-        });
-    },
+    showConfirmModal: (config) => set(state => ({
+        confirmModal: {
+            ...initialConfirmModalState,
+            ...config,
+            isOpen: true,
+            // Wrap onCancel to automatically close the modal
+            onCancel: () => {
+                state.hideConfirmModal();
+            },
+            // Wrap onConfirm to execute the action then close the modal
+            onConfirm: () => {
+                config.onConfirm();
+                state.hideConfirmModal();
+            },
+        }
+    })),
     hideConfirmModal: () => set({ confirmModal: initialConfirmModalState }),
-    previewThemeId: null,
-    setPreviewTheme: (themeId) => set({ previewThemeId: themeId }),
 }));

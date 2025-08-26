@@ -34,8 +34,7 @@ export const InventoryModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
     if (!isOpen) return null;
 
     const ownedPowerUps = Object.entries(inventory)
-        // FIX: Use Number(count) to safely cast count to a number and prevent type error.
-        .filter(([, count]) => Number(count) > 0)
+        .filter(([, count]) => (count || 0) > 0)
         .map(([id]) => id as PowerUpId);
 
     const isDoubleXpActive = activeBoosts?.DOUBLE_XP && activeBoosts.DOUBLE_XP.expiresAt > currentTime;
