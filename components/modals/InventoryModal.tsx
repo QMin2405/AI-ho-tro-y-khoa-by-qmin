@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../../store/useUserStore';
 import { POWER_UPS_DATA } from '../../constants';
 import { PowerUpId } from '../../types';
-import { XIcon, BriefcaseIcon, ClockIcon } from '../icons';
+import { XIcon, ShoppingBagIcon, ClockIcon } from '../icons';
 
 const formatTime = (ms: number) => {
     if (ms <= 0) return '00:00:00';
@@ -41,13 +41,13 @@ export const InventoryModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
         <div className="fixed inset-0 bg-black/60 z-30 flex items-center justify-center p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl transform transition-all animate-fade-in flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b border-slate-200 dark:border-gray-700 flex justify-between items-center">
-                    <h2 className="text-2xl font-bold flex items-center gap-3"><BriefcaseIcon className="w-7 h-7" /> Túi đồ</h2>
+                    <h2 className="text-2xl font-bold flex items-center gap-3"><ShoppingBagIcon className="w-7 h-7" /> Túi đồ</h2>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-gray-700"><XIcon /></button>
                 </div>
                 <div className="p-6 overflow-y-auto">
                     {!hasItems && !hasActiveEffects ? (
                         <div className="text-center py-12">
-                            <BriefcaseIcon className="w-12 h-12 mx-auto text-slate-400 mb-2" />
+                            <ShoppingBagIcon className="w-12 h-12 mx-auto text-slate-400 mb-2" />
                             <p className="text-slate-500 dark:text-slate-400 font-semibold">Túi đồ trống.</p>
                             <p className="text-sm text-slate-400">Hãy mua vật phẩm từ cửa hàng để sử dụng.</p>
                         </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { getLevelInfo } from '../utils/helpers';
-import { CpuChipIcon, FireIcon, BadgeCheckIcon, SunIcon, MoonIcon, HeartIcon, MaximizeIcon, RestoreDownIcon, CoinIcon, ShoppingCartIcon, ClipboardCheckIcon, BriefcaseIcon, ShieldCheckIcon, BoltIcon } from './icons';
+import { CpuChipIcon, FireIcon, BadgeCheckIcon, SunIcon, MoonIcon, HeartIcon, MaximizeIcon, RestoreDownIcon, CoinIcon, ShoppingCartIcon, ClipboardCheckIcon, ShoppingBagIcon, ShieldCheckIcon, BoltIcon } from './icons';
 import { BADGES_DATA } from '../constants';
 
 export const AppHeader = ({ 
@@ -134,7 +134,7 @@ export const AppHeader = ({
                         )}
                     </button>
                      <button onClick={onInventoryClick} className="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors">
-                        <BriefcaseIcon className="w-6 h-6" />
+                        <ShoppingBagIcon className="w-6 h-6" />
                     </button>
                     <button onClick={onProfileClick} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors relative group">
                         <BadgeDisplay />

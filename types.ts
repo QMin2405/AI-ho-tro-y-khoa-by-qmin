@@ -149,6 +149,7 @@ export enum PowerUpId {
     DOUBLE_COINS = 'DOUBLE_COINS',
     STREAK_SHIELD = 'STREAK_SHIELD',
     REMOVE_ONE_WRONG = 'REMOVE_ONE_WRONG',
+    FIFTY_FIFTY = 'FIFTY_FIFTY',
 }
 
 export interface PowerUp {

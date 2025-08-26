@@ -186,6 +186,12 @@ export const POWER_UPS_DATA: Record<PowerUpId, Omit<PowerUp, 'id'>> = {
         price: 200,
         icon: React.createElement(MinusCircleIcon, { className: 'w-8 h-8' }),
     },
+    [PowerUpId.FIFTY_FIFTY]: {
+        name: 'Hỗ trợ 50:50',
+        description: 'Loại bỏ hai phương án sai trong một câu hỏi trắc nghiệm.',
+        price: 350,
+        icon: React.createElement(ScaleIcon, { className: 'w-8 h-8' }),
+    },
 };
 
 export const QUEST_TEMPLATES = {
