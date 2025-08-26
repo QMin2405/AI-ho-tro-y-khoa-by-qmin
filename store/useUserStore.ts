@@ -136,12 +136,18 @@ export const useUserStore = create<UserState & UserActions>()(
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     try {
-                        const importedData = JSON.parse(event.target?.result as string);
+                        const importedData = JSON.parse(event.target?.result as string) as UserData;
+                        // Logic corrected: Load all data from the file, including active boosts.
+                        // The `expiresAt` timestamp within the boost data will determine if it's still valid.
                         if (importedData.name && Array.isArray(importedData.studyPacks)) {
                             get().setUserData(importedData);
                             useUIStore.getState().showToast("Dữ liệu đã được khôi phục thành công!");
-                        } else { throw new Error("Invalid data format."); }
-                    } catch (error) { useUIStore.getState().showToast("Lỗi: Tệp dữ liệu không hợp lệ."); }
+                        } else { 
+                            throw new Error("Invalid data format."); 
+                        }
+                    } catch (error) { 
+                        useUIStore.getState().showToast("Lỗi: Tệp dữ liệu không hợp lệ."); 
+                    }
                 };
                 reader.readAsText(file);
             },
@@ -162,6 +168,8 @@ export const useUserStore = create<UserState & UserActions>()(
             },
             
             addXp: (amount, customMessage) => {
+                if (!get().isLoggedIn) return;
+                
                 const state = get();
                 const roundedAmount = Math.round(amount);
                 if (roundedAmount <= 0) return;
@@ -192,6 +200,8 @@ export const useUserStore = create<UserState & UserActions>()(
             },
             
             addStethoCoins: (amount, customMessage) => {
+                if (!get().isLoggedIn) return;
+
                 const state = get();
                 const roundedAmount = Math.round(amount);
                 if (roundedAmount <= 0) return;
@@ -1129,6 +1139,10 @@ export const useUserStore = create<UserState & UserActions>()(
             },
 
             claimQuestReward: (questId) => {
+                if (!get().isLoggedIn) {
+                    useUIStore.getState().showToast("Vui lòng đăng nhập để nhận thưởng.");
+                    return;
+                }
                 const quest = get().activeQuests.find(q => q.id === questId);
                 if (quest && !quest.claimed && quest.progress >= quest.target) {
                     set(state => ({
@@ -1157,6 +1171,10 @@ export const useUserStore = create<UserState & UserActions>()(
             },
             
             claimTribute: () => {
+                if (!get().isLoggedIn) {
+                    useUIStore.getState().showToast("Vui lòng đăng nhập để nhận thưởng.");
+                    return;
+                }
                 if (!get().tributeClaimed) {
                     const tributeAmount = 2000;
                     set(state => ({
