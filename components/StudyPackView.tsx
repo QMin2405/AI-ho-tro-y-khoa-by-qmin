@@ -115,6 +115,10 @@ const ConciseSummaryView = ({ summary }: { summary: string }) => {
 const QuizView = ({ pack }: { pack: StudyPack; }) => {
     const { handleQuizAnswer, generateMoreQuestions, updateStudyPack, setTutorContextAndOpen, handleQuizComplete, inventory, usePowerUp } = useUserStore.getState();
     const isGenerating = useUserStore(state => state.isGenerating);
+    
+    // FIX: Stabilize derived arrays with useMemo to prevent infinite render loops.
+    // This is the primary fix for the React #185 error.
+    const questionIds = useMemo(() => pack.quiz.map(q => q.uniqueId), [pack.quiz]);
 
     const session: QuizSession = useMemo(() => (
         pack.quizSession || {
@@ -122,9 +126,14 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
             comboCount: 0,
             submittedAnswers: {},
             incorrectlyAnsweredIds: [],
-            activeQuestionIds: pack.quiz.map(q => q.uniqueId),
+            activeQuestionIds: questionIds,
         }
-    ), [pack.quizSession, pack.quiz]);
+    ), [pack.quizSession, questionIds]);
+    
+    const questions = useMemo(() => {
+        return pack.quiz.filter(q => session.activeQuestionIds.includes(q.uniqueId));
+    }, [pack.quiz, session.activeQuestionIds]);
+
 
     const [viewMode, setViewMode] = useState<'all' | 'incorrect'>('all');
     const [showResults, setShowResults] = useState(false);
@@ -132,9 +141,7 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
     const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
     const [optionsToRemove, setOptionsToRemove] = useState<string[]>([]);
     
-    // This effect runs whenever the active set of questions changes, which can happen
-    // after generating new questions or when retrying incorrect ones. Its purpose is
-    // to ensure the user is taken out of the results/review screen and back to the quiz.
+    // This effect is now stable because its dependency `session.activeQuestionIds` is stable.
     useEffect(() => {
         setShowResults(false);
         setIsReviewing(false);
@@ -143,10 +150,6 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
     const handleGenerateAndContinue = async () => {
         await generateMoreQuestions(pack.id, false, { startNewSessionWithNewQuestions: true });
     };
-    
-    const questions = useMemo(() => {
-        return pack.quiz.filter(q => session.activeQuestionIds.includes(q.uniqueId));
-    }, [pack.quiz, session.activeQuestionIds]);
 
     const currentQuestion = questions[session.currentQuestionIndex];
     const submittedAnswer = currentQuestion ? session.submittedAnswers[currentQuestion.uniqueId] : null;
@@ -459,17 +462,25 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
     const { handleM2StaatexamQuizAnswer, generateMoreQuestions, updateStudyPack, setTutorContextAndOpen, handleM2StaatexamQuizComplete, inventory, usePowerUp } = useUserStore.getState();
     const isGenerating = useUserStore(state => state.isGenerating);
     
-    const questions = pack.m2StaatexamQuiz || [];
+    const allM2Questions = pack.m2StaatexamQuiz || [];
 
+    // FIX: Stabilize derived arrays with useMemo to prevent infinite render loops.
+    const questionIds = useMemo(() => allM2Questions.map(q => q.uniqueId), [allM2Questions]);
+    
     const session: QuizSession = useMemo(() => (
         pack.m2StaatexamQuizSession || {
             currentQuestionIndex: 0,
             comboCount: 0,
             submittedAnswers: {},
             incorrectlyAnsweredIds: [],
-            activeQuestionIds: questions.map(q => q.uniqueId),
+            activeQuestionIds: questionIds,
         }
-    ), [pack.m2StaatexamQuizSession, questions]);
+    ), [pack.m2StaatexamQuizSession, questionIds]);
+
+    const activeQuestions = useMemo(() => {
+        return allM2Questions.filter(q => session.activeQuestionIds.includes(q.uniqueId));
+    }, [allM2Questions, session.activeQuestionIds]);
+
 
     const [viewMode, setViewMode] = useState<'all' | 'incorrect'>('all');
     const [showResults, setShowResults] = useState(false);
@@ -486,10 +497,6 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
         await generateMoreQuestions(pack.id, true, { startNewSessionWithNewQuestions: true });
     };
     
-    const activeQuestions = useMemo(() => {
-        return questions.filter(q => session.activeQuestionIds.includes(q.uniqueId));
-    }, [questions, session.activeQuestionIds]);
-
     const currentQuestion = activeQuestions[session.currentQuestionIndex];
     const submittedAnswer = currentQuestion ? session.submittedAnswers[currentQuestion.uniqueId] : null;
 
@@ -577,7 +584,7 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
             comboCount: 0,
             submittedAnswers: {},
             incorrectlyAnsweredIds: [],
-            activeQuestionIds: questions.map(q => q.uniqueId),
+            activeQuestionIds: allM2Questions.map(q => q.uniqueId),
         };
         updateStudyPack({ ...pack, m2StaatexamQuizSession: newSession });
         setViewMode('all');
@@ -588,7 +595,7 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
     const score = Object.values(session.submittedAnswers).filter(a => a.isCorrect).length;
 
     if (isReviewing) {
-        const reviewedQuestions = questions.filter(q => session.activeQuestionIds.includes(q.uniqueId));
+        const reviewedQuestions = allM2Questions.filter(q => session.activeQuestionIds.includes(q.uniqueId));
         return (
             <div>
                 <div className="flex justify-between items-center mb-6">
