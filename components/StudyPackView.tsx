@@ -116,15 +116,16 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
     const { handleQuizAnswer, generateMoreQuestions, updateStudyPack, setTutorContextAndOpen, handleQuizComplete, inventory, usePowerUp } = useUserStore.getState();
     const isGenerating = useUserStore(state => state.isGenerating);
 
+    const questionIds = useMemo(() => pack.quiz.map(q => q.uniqueId), [pack.quiz]);
     const session: QuizSession = useMemo(() => (
         pack.quizSession || {
             currentQuestionIndex: 0,
             comboCount: 0,
             submittedAnswers: {},
             incorrectlyAnsweredIds: [],
-            activeQuestionIds: pack.quiz.map(q => q.uniqueId),
+            activeQuestionIds: questionIds,
         }
-    ), [pack.quizSession, pack.quiz]);
+    ), [pack.quizSession, questionIds]);
 
     const [viewMode, setViewMode] = useState<'all' | 'incorrect'>('all');
     const [showResults, setShowResults] = useState(false);
@@ -459,7 +460,8 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
     const { handleM2StaatexamQuizAnswer, generateMoreQuestions, updateStudyPack, setTutorContextAndOpen, handleM2StaatexamQuizComplete, inventory, usePowerUp } = useUserStore.getState();
     const isGenerating = useUserStore(state => state.isGenerating);
     
-    const questions = pack.m2StaatexamQuiz || [];
+    const questions = useMemo(() => pack.m2StaatexamQuiz || [], [pack.m2StaatexamQuiz]);
+    const questionIds = useMemo(() => questions.map(q => q.uniqueId), [questions]);
 
     const session: QuizSession = useMemo(() => (
         pack.m2StaatexamQuizSession || {
@@ -467,9 +469,9 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
             comboCount: 0,
             submittedAnswers: {},
             incorrectlyAnsweredIds: [],
-            activeQuestionIds: questions.map(q => q.uniqueId),
+            activeQuestionIds: questionIds,
         }
-    ), [pack.m2StaatexamQuizSession, questions]);
+    ), [pack.m2StaatexamQuizSession, questionIds]);
 
     const [viewMode, setViewMode] = useState<'all' | 'incorrect'>('all');
     const [showResults, setShowResults] = useState(false);
