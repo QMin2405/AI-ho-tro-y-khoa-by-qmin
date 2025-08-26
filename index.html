@@ -75,6 +75,27 @@
         --color-brand-primary: #3b82f6;
         --color-brand-secondary: #60a5fa;
       }
+
+      /* Add smooth transitions for a better user experience */
+      *,
+      *::before,
+      *::after {
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 300ms;
+      }
+
+      /* Add faster transitions and press feedback for interactive elements */
+      button, a[role="button"] {
+        /* Add transform to the list of transitioned properties */
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform;
+        transition-duration: 150ms; /* Faster for interactions */
+      }
+
+      button:active, a[role="button"]:active {
+        /* Add a subtle scale down effect on click */
+        transform: scale(0.97);
+      }
     </style>
   <script type="importmap">
 {
@@ -90,7 +111,6 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-background text-text-primary">
     <div id="root"></div>
