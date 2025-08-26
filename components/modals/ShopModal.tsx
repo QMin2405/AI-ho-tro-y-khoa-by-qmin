@@ -45,6 +45,7 @@ const PowerUpsTab = () => {
 const ThemesTab = () => {
     const { stethoCoins, ownedThemes, activeTheme, buyTheme, setTheme } = useUserStore();
     const { previewThemeId, setPreviewTheme } = useUIStore();
+    const showConfirmModal = useUIStore(state => state.showConfirmModal);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -74,7 +75,15 @@ const ThemesTab = () => {
                     }
                     return (
                         <button 
-                            onClick={() => buyTheme(themeId)}
+                            onClick={() => {
+                                showConfirmModal({
+                                    title: 'Xác nhận mua giao diện',
+                                    text: `Bạn có chắc chắn muốn mua giao diện "${theme.name}" với giá ${theme.price} Stetho Coins không?`,
+                                    confirmText: 'Mua',
+                                    onConfirm: () => buyTheme(themeId),
+                                    isDestructive: false,
+                                });
+                            }}
                             disabled={!canAfford}
                             className="w-full px-4 py-2 bg-brand-primary text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:bg-slate-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed"
                         >
