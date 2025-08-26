@@ -49,16 +49,17 @@ const App = () => {
     const toast = useUIStore(state => state.toast);
     const hideToast = useUIStore(state => state.hideToast);
     const confirmModal = useUIStore(state => state.confirmModal);
+    const previewThemeId = useUIStore(state => state.previewThemeId);
 
     // --- Effects ---
 
     // Effect to apply theme colors and dark mode class
     useEffect(() => {
-        const theme = THEMES_DATA[activeThemeId || ThemeId.DEFAULT];
+        const themeIdToApply = previewThemeId || activeThemeId || ThemeId.DEFAULT;
+        const theme = THEMES_DATA[themeIdToApply];
         const colors = isDarkMode ? theme.darkColors : theme.lightColors;
 
         Object.entries(colors).forEach(([key, value]) => {
-            // FIX: Explicitly cast value to string to resolve TypeScript error.
             document.documentElement.style.setProperty(key, value as string);
         });
 
@@ -67,7 +68,7 @@ const App = () => {
         } else {
             document.documentElement.classList.remove('dark');
         }
-    }, [activeThemeId, isDarkMode]);
+    }, [activeThemeId, previewThemeId, isDarkMode]);
 
 
     // Effect for initializing dark mode and checking streak on load

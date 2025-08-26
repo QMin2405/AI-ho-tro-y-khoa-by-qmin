@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../../store/useUserStore';
 import { useUIStore } from '../../store/useUIStore';
 import { POWER_UPS_DATA, THEMES_DATA } from '../../constants';
-import { PowerUpId, ThemeId, Theme } from '../../types';
-import { XIcon, CoinIcon, GiftIcon, SparklesIcon, CheckCircleIcon } from '../icons';
+import { PowerUpId, ThemeId } from '../../types';
+import { XIcon, CoinIcon, GiftIcon, SparklesIcon, CheckCircleIcon, ArrowUturnLeftIcon } from '../icons';
 
 const PowerUpsTab = () => {
-    const { stethoCoins, inventory, buyPowerUp } = useUserStore();
+    const stethoCoins = useUserStore(state => state.stethoCoins);
+    const inventory = useUserStore(state => state.inventory);
+    const buyPowerUp = useUserStore(state => state.buyPowerUp);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -43,17 +45,25 @@ const PowerUpsTab = () => {
 };
 
 const ThemesTab = () => {
-    const { stethoCoins, ownedThemes, activeTheme, buyTheme, setTheme } = useUserStore();
-    const { setPreviewTheme } = useUIStore();
-    const showConfirmModal = useUIStore(state => state.showConfirmModal);
+    const { stethoCoins, ownedThemes, activeTheme, buyTheme, setTheme } = useUserStore(state => ({
+        stethoCoins: state.stethoCoins,
+        ownedThemes: state.ownedThemes,
+        activeTheme: state.activeTheme,
+        buyTheme: state.buyTheme,
+        setTheme: state.setTheme,
+    }));
+    const { setPreviewTheme, showConfirmModal } = useUIStore();
 
-    const handleBuyClick = (themeId: ThemeId, theme: Omit<Theme, 'id'>) => {
-        setPreviewTheme(null); // Revert preview before showing modal
+    const handleBuyClick = (e: React.MouseEvent, themeId: ThemeId, theme: typeof THEMES_DATA[ThemeId]) => {
+        e.stopPropagation();
         showConfirmModal({
-            title: `Mua giao diện "${theme.name}"?`,
-            text: `Bạn có chắc chắn muốn dùng ${theme.price} Stetho Coins để mua giao diện này không?`,
+            title: `Mua giao diện ${theme.name}?`,
+            text: `Hành động này sẽ trừ ${theme.price} Stetho Coins từ tài khoản của bạn.`,
             confirmText: 'Xác nhận Mua',
-            onConfirm: () => buyTheme(themeId),
+            onConfirm: () => {
+                buyTheme(themeId);
+                setPreviewTheme(null); // Stop previewing after buying
+            },
             isDestructive: false,
         });
     };
@@ -77,7 +87,7 @@ const ThemesTab = () => {
                     }
                     if (isOwned) {
                         return (
-                             <button onClick={(e) => { e.stopPropagation(); setPreviewTheme(null); setTheme(themeId); }} className="w-full px-4 py-2 bg-brand-secondary text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+                             <button onClick={(e) => { e.stopPropagation(); setTheme(themeId); setPreviewTheme(null); }} className="w-full px-4 py-2 bg-brand-secondary text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
                                 <SparklesIcon className="w-5 h-5"/>
                                 <span>Trang bị</span>
                             </button>
@@ -85,7 +95,7 @@ const ThemesTab = () => {
                     }
                     return (
                         <button 
-                            onClick={(e) => { e.stopPropagation(); handleBuyClick(themeId, theme); }}
+                            onClick={(e) => handleBuyClick(e, themeId, theme)}
                             disabled={!canAfford}
                             className="w-full px-4 py-2 bg-brand-primary text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:bg-slate-400 dark:disabled:bg-gray-500 disabled:cursor-not-allowed"
                         >
@@ -96,13 +106,13 @@ const ThemesTab = () => {
                 };
 
                 return (
-                     <div key={id} onClick={() => setPreviewTheme(themeId)} className="bg-background rounded-lg p-4 flex flex-col gap-4 border border-border cursor-pointer transition-all hover:border-brand-primary hover:shadow-md">
-                        <div className="flex-grow pointer-events-none">
+                     <div key={id} onClick={() => setPreviewTheme(themeId)} className="bg-background rounded-lg p-4 flex flex-col gap-4 border border-border cursor-pointer hover:border-brand-primary transition-colors">
+                        <div className="flex-grow">
                              <div className="flex items-center justify-between">
                                 <h3 className="font-bold text-lg">{theme.name}</h3>
                                 <div className="flex items-center gap-1.5">
                                     {theme.previewColors.map((color, i) => (
-                                        <div key={i} className="w-5 h-5 rounded-full ring-1 ring-border" style={{ backgroundColor: color }}></div>
+                                        <div key={i} className="w-5 h-5 rounded-full ring-1 ring-inset ring-black/10" style={{ backgroundColor: color }}></div>
                                     ))}
                                 </div>
                             </div>
@@ -116,31 +126,32 @@ const ThemesTab = () => {
 }
 
 export const ShopModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void; }) => {
-    const { stethoCoins, tributeClaimed, claimTribute } = useUserStore();
+    const stethoCoins = useUserStore(state => state.stethoCoins);
+    const tributeClaimed = useUserStore(state => state.tributeClaimed);
+    const claimTribute = useUserStore(state => state.claimTribute);
+    const { previewThemeId, setPreviewTheme } = useUIStore();
     const [activeTab, setActiveTab] = useState<'items' | 'themes'>('items');
-    const { previewThemeId, setPreviewTheme } = useUIStore(state => ({
-        previewThemeId: state.previewThemeId,
-        setPreviewTheme: state.setPreviewTheme,
-    }));
 
-    // Cleanup preview on unmount
+    // Effect to clear preview when the modal is closed.
+    // This is a crucial part of the bug fix to prevent state leakage and ensure stability.
     useEffect(() => {
-        return () => {
+        if (!isOpen) {
             setPreviewTheme(null);
-        };
-    }, [setPreviewTheme]);
-
-    if (!isOpen) return null;
-
+        }
+    }, [isOpen, setPreviewTheme]);
+    
+    // Wrapper for onClose to also clear preview theme
     const handleClose = () => {
         setPreviewTheme(null);
         onClose();
     };
 
+    if (!isOpen) return null;
+
     return (
         <div className="fixed inset-0 bg-black/60 z-30 flex items-center justify-center p-4">
-            <div className="bg-foreground rounded-2xl shadow-2xl w-full max-w-3xl transform transition-all animate-fade-in flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                <div className="p-6 border-b border-border flex justify-between items-center">
+            <div className="bg-foreground rounded-2xl shadow-2xl w-full max-w-4xl transform transition-all animate-fade-in flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-border flex justify-between items-center flex-shrink-0">
                     <div className="flex items-center gap-4">
                         <h2 className="text-2xl font-bold">Cửa hàng</h2>
                         <button
@@ -160,7 +171,7 @@ export const ShopModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                         <button onClick={handleClose} className="p-2 rounded-full hover:bg-background"><XIcon /></button>
                     </div>
                 </div>
-                 <div className="border-b border-border px-6">
+                 <div className="border-b border-border px-6 flex-shrink-0">
                     <nav className="flex gap-4">
                         <button 
                             onClick={() => setActiveTab('items')}
@@ -176,21 +187,17 @@ export const ShopModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                         </button>
                     </nav>
                 </div>
-                <div className="p-6 overflow-y-auto">
+                <div className="p-6 overflow-y-auto flex-grow">
                    {activeTab === 'items' && <PowerUpsTab />}
                    {activeTab === 'themes' && <ThemesTab />}
                 </div>
-
-                {previewThemeId && activeTab === 'themes' && (
-                    <div className="p-4 bg-background border-t border-border flex justify-between items-center animate-fade-in">
-                        <span className="text-sm font-semibold">
-                            Đang xem trước: <span className="text-brand-primary">{THEMES_DATA[previewThemeId].name}</span>
-                        </span>
-                        <div>
-                            <button onClick={() => setPreviewTheme(null)} className="px-4 py-2 rounded-lg hover:bg-border font-semibold text-sm">
-                                Quay lại Giao diện Cũ
-                            </button>
-                        </div>
+                 {previewThemeId && (
+                    <div className="p-4 bg-background border-t border-border flex justify-between items-center flex-shrink-0">
+                        <span className="font-semibold">Đang xem trước: <span className="text-brand-primary">{THEMES_DATA[previewThemeId].name}</span></span>
+                        <button onClick={() => setPreviewTheme(null)} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-border font-semibold text-sm">
+                            <ArrowUturnLeftIcon className="w-5 h-5" />
+                            <span>Hoàn tác</span>
+                        </button>
                     </div>
                 )}
             </div>
