@@ -92,9 +92,16 @@
         transition-duration: 150ms; /* Faster for interactions */
       }
 
-      button:active, a[role="button"]:active {
-        /* Add a subtle scale down effect on click */
-        transform: scale(0.97);
+      /* Add a subtle lift effect on hover for non-disabled buttons */
+      button:not(:disabled):hover,
+      a[role="button"]:not(:disabled):hover {
+        transform: translateY(-2px);
+      }
+
+      /* On active/click, combine the lift with a shrink effect for feedback */
+      button:not(:disabled):active,
+      a[role="button"]:not(:disabled):active {
+        transform: translateY(-1px) scale(0.97);
       }
     </style>
   <script type="importmap">
