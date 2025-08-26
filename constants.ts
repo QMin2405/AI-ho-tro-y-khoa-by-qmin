@@ -171,7 +171,7 @@ export const POWER_UPS_DATA: Record<PowerUpId, Omit<PowerUp, 'id'>> = {
     [PowerUpId.DOUBLE_COINS]: {
         name: 'Nhân đôi Coin (1 giờ)',
         description: 'Tăng gấp đôi lượng Stetho Coins bạn kiếm được trong 1 giờ tiếp theo.',
-        price: 750,
+        price: 500,
         icon: React.createElement(BanknotesIcon, { className: 'w-8 h-8' }),
     },
     [PowerUpId.STREAK_SHIELD]: {
