@@ -22,10 +22,8 @@ export const AppHeader = ({
     const hasClaimableQuests = useUserStore(state => state.activeQuests.some(q => !q.claimed && q.progress >= q.target));
     const activeBoosts = useUserStore(state => state.activeBoosts);
     const isStreakShieldActive = useUserStore(state => state.isStreakShieldActive);
-    const activeThemeId = useUserStore(state => state.activeTheme);
     
     const { level, name: levelName, progress, nextLevelXP } = getLevelInfo(xp);
-    const isDefaultTheme = !activeThemeId || activeThemeId === ThemeId.DEFAULT;
 
     const latestBadgeId = unlockedBadges.length > 0 ? unlockedBadges[unlockedBadges.length - 1] : null;
     const latestBadge = latestBadgeId ? BADGES_DATA[latestBadgeId] : null;
@@ -147,7 +145,7 @@ export const AppHeader = ({
                             </div>
                         )}
                     </button>
-                    <button onClick={onToggleDark} disabled={!isDefaultTheme} className="p-2 rounded-full hover:bg-background transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button onClick={onToggleDark} className="p-2 rounded-full hover:bg-background transition-colors">
                         {isDarkMode ? <SunIcon className="w-6 h-6 text-yellow-400" /> : <MoonIcon className="w-6 h-6" />}
                     </button>
                     <button onClick={handleToggleFullscreen} className="p-2 rounded-full hover:bg-background transition-colors">

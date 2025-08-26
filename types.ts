@@ -192,21 +192,23 @@ export enum ThemeId {
     SYNTHWAVE = 'SYNTHWAVE',
 }
 
+type ThemeColors = {
+    '--color-background': string;
+    '--color-foreground': string;
+    '--color-text-primary': string;
+    '--color-text-secondary': string;
+    '--color-border': string;
+    '--color-brand-primary': string;
+    '--color-brand-secondary': string;
+};
+
 export interface Theme {
     id: ThemeId;
     name: string;
     price: number;
-    type: 'light' | 'dark';
     previewColors: string[];
-    colors: {
-        '--color-background': string;
-        '--color-foreground': string;
-        '--color-text-primary': string;
-        '--color-text-secondary': string;
-        '--color-border': string;
-        '--color-brand-primary': string;
-        '--color-brand-secondary': string;
-    };
+    lightColors: ThemeColors;
+    darkColors: ThemeColors;
 }
 
 

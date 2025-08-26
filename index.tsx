@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useUserStore } from './store/useUserStore';
 import { useUIStore } from './store/useUIStore';
+import { ThemeId } from './types';
+import { THEMES_DATA } from './constants';
 
 import { AppHeader } from './components/AppHeader';
 import { Dashboard } from './components/Dashboard';
@@ -41,6 +43,7 @@ const App = () => {
     const autoCleanupTrash = useUserStore(state => state.autoCleanupTrash);
     const refreshQuests = useUserStore(state => state.refreshQuests);
     const isLoggedIn = useUserStore(state => state.isLoggedIn);
+    const activeThemeId = useUserStore(state => state.activeTheme);
     
     // UI store for global components like toasts and confirm modals
     const toast = useUIStore(state => state.toast);
@@ -49,13 +52,32 @@ const App = () => {
 
     // --- Effects ---
 
-    // Effect for initializing theme and checking streak on load
+    // Effect to apply theme colors and dark mode class
     useEffect(() => {
+        const theme = THEMES_DATA[activeThemeId || ThemeId.DEFAULT];
+        const colors = isDarkMode ? theme.darkColors : theme.lightColors;
+
+        Object.entries(colors).forEach(([key, value]) => {
+            document.documentElement.style.setProperty(key, value);
+        });
+
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [activeThemeId, isDarkMode]);
+
+
+    // Effect for initializing dark mode and checking streak on load
+    useEffect(() => {
+        // This effect only sets the initial dark mode state
         const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
-            document.documentElement.classList.add('dark');
             setIsDarkMode(true);
+        } else {
+            setIsDarkMode(false);
         }
         
         // Cleanup trash on app start
@@ -82,10 +104,8 @@ const App = () => {
         setIsDarkMode(prev => {
             const newIsDark = !prev;
             if (newIsDark) {
-                document.documentElement.classList.add('dark');
                 localStorage.setItem('theme', 'dark');
             } else {
-                document.documentElement.classList.remove('dark');
                 localStorage.setItem('theme', 'light');
             }
             return newIsDark;
@@ -106,7 +126,7 @@ const App = () => {
     const isAtHome = activeView === 'dashboard' && currentFolderId === null;
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-background text-text-primary">
             <AppHeader
                 onToggleDark={toggleDarkMode}
                 isDarkMode={isDarkMode}

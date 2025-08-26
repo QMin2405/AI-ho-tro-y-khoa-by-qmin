@@ -215,9 +215,8 @@ export const THEMES_DATA: Record<ThemeId, Omit<Theme, 'id'>> = {
     [ThemeId.DEFAULT]: {
         name: 'Giao diện Mặc định',
         price: 0,
-        type: 'light',
-        previewColors: ['#f1f5f9', '#ffffff', '#3b82f6', '#64748b'],
-        colors: { // These are not really used, as the CSS in index.html handles the default
+        previewColors: ['#f1f5f9', '#0f172a', '#3b82f6', '#64748b'],
+        lightColors: {
             '--color-background': '#f1f5f9',
             '--color-foreground': '#ffffff',
             '--color-text-primary': '#1e293b',
@@ -225,14 +224,31 @@ export const THEMES_DATA: Record<ThemeId, Omit<Theme, 'id'>> = {
             '--color-border': '#e2e8f0',
             '--color-brand-primary': '#1d4ed8',
             '--color-brand-secondary': '#3b82f6',
+        },
+        darkColors: {
+            '--color-background': '#0f172a',
+            '--color-foreground': '#1e293b',
+            '--color-text-primary': '#e2e8f0',
+            '--color-text-secondary': '#94a3b8',
+            '--color-border': '#334155',
+            '--color-brand-primary': '#3b82f6',
+            '--color-brand-secondary': '#60a5fa',
         }
     },
     [ThemeId.DEEP_OCEAN]: {
         name: 'Xanh Biển Sâu',
         price: 1500,
-        type: 'dark',
-        previewColors: ['#0d1b2a', '#1b263b', '#778da9', '#00b4d8'],
-        colors: {
+        previewColors: ['#f0f2f5', '#0d1b2a', '#778da9', '#00b4d8'],
+        lightColors: {
+            '--color-background': '#f0f2f5',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#1b263b',
+            '--color-text-secondary': '#415a77',
+            '--color-border': '#cad1d9',
+            '--color-brand-primary': '#0096c7',
+            '--color-brand-secondary': '#48cae4',
+        },
+        darkColors: {
             '--color-background': '#0d1b2a',
             '--color-foreground': '#1b263b',
             '--color-text-primary': '#e0e1dd',
@@ -245,9 +261,8 @@ export const THEMES_DATA: Record<ThemeId, Omit<Theme, 'id'>> = {
     [ThemeId.CHERRY_BLOSSOM]: {
         name: 'Hoa Anh Đào',
         price: 2000,
-        type: 'light',
-        previewColors: ['#fff0f3', '#ffffff', '#ffb3c1', '#ff8fab'],
-        colors: {
+        previewColors: ['#fff0f3', '#2b2123', '#ffb3c1', '#ff8fab'],
+        lightColors: {
             '--color-background': '#fff0f3',
             '--color-foreground': '#ffffff',
             '--color-text-primary': '#59484b',
@@ -255,14 +270,31 @@ export const THEMES_DATA: Record<ThemeId, Omit<Theme, 'id'>> = {
             '--color-border': '#ffe5e9',
             '--color-brand-primary': '#ff8fab',
             '--color-brand-secondary': '#ffb3c1',
+        },
+        darkColors: {
+            '--color-background': '#2b2123',
+            '--color-foreground': '#403235',
+            '--color-text-primary': '#ffe5e9',
+            '--color-text-secondary': '#bfaab0',
+            '--color-border': '#59484b',
+            '--color-brand-primary': '#ff8fab',
+            '--color-brand-secondary': '#ffb3c1',
         }
     },
     [ThemeId.SYNTHWAVE]: {
         name: 'Synthwave',
         price: 2500,
-        type: 'dark',
-        previewColors: ['#1a103c', '#2c1e5c', '#ff00ff', '#00ffff'],
-        colors: {
+        previewColors: ['#f0f0f0', '#1a103c', '#ff00ff', '#00ffff'],
+        lightColors: {
+            '--color-background': '#f0f0f0',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#2c1e5c',
+            '--color-text-secondary': '#4a3d8f',
+            '--color-border': '#d9d5e5',
+            '--color-brand-primary': '#e600e6',
+            '--color-brand-secondary': '#00e6e6',
+        },
+        darkColors: {
             '--color-background': '#1a103c',
             '--color-foreground': '#2c1e5c',
             '--color-text-primary': '#f0f0f0',
