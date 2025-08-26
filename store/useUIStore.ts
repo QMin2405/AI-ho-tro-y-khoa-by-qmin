@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { ThemeId } from '../types';
 
 type ConfirmModalState = {
     isOpen: boolean;
@@ -17,6 +18,8 @@ type UIState = {
     confirmModal: ConfirmModalState;
     showConfirmModal: (config: Omit<ConfirmModalState, 'isOpen' | 'onCancel'>) => void;
     hideConfirmModal: () => void;
+    previewThemeId: ThemeId | null;
+    setPreviewTheme: (themeId: ThemeId | null) => void;
 };
 
 const initialConfirmModalState: ConfirmModalState = {
@@ -51,4 +54,6 @@ export const useUIStore = create<UIState>((set) => ({
         }
     })),
     hideConfirmModal: () => set({ confirmModal: initialConfirmModalState }),
+    previewThemeId: null,
+    setPreviewTheme: (themeId) => set({ previewThemeId: themeId }),
 }));
