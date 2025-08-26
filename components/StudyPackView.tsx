@@ -187,17 +187,16 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
         if (selectedAnswers.length > 0) handleAnswerSubmit(selectedAnswers);
     };
     
-    const handleUseFiftyFifty = () => {
+    const handleRemoveOneWrong = () => {
         if (!currentQuestion || optionsToRemove.length > 0) return;
-        usePowerUp(PowerUpId.FIFTY_FIFTY);
+        usePowerUp(PowerUpId.REMOVE_ONE_WRONG);
 
         const incorrectOptions = currentQuestion.options.filter(
             opt => !currentQuestion.correctAnswers.includes(opt)
         );
         
-        // Shuffle and pick two to remove
         const shuffled = incorrectOptions.sort(() => 0.5 - Math.random());
-        setOptionsToRemove(shuffled.slice(0, 2));
+        setOptionsToRemove(shuffled.slice(0, 1));
     };
 
     const navigateQuestion = (direction: 'next' | 'prev') => {
@@ -344,8 +343,8 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
         return <p>Không có câu hỏi nào để hiển thị.</p>
     }
 
-    const fiftyFiftyCount = inventory[PowerUpId.FIFTY_FIFTY] || 0;
-    const canUseFiftyFifty = fiftyFiftyCount > 0 && !submittedAnswer && optionsToRemove.length === 0 && (currentQuestion.options.length - currentQuestion.correctAnswers.length) >= 2;
+    const removeOneWrongCount = inventory[PowerUpId.REMOVE_ONE_WRONG] || 0;
+    const canUseRemoveOneWrong = removeOneWrongCount > 0 && !submittedAnswer && optionsToRemove.length === 0 && (currentQuestion.options.length - currentQuestion.correctAnswers.length) >= 1;
     
     return (
         <div>
@@ -389,7 +388,7 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
                 </div>
             )}
             {submittedAnswer && (
-                 <div className={`mt-6 p-4 rounded-lg ${submittedAnswer.isCorrect ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/30'}`}>
+                 <div className={`mt-6 p-4 rounded-lg ${submittedAnswer.isCorrect ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:red-900/30'}`}>
                     <div className="flex items-start gap-2">
                          {submittedAnswer.isCorrect ? <CheckCircleIcon className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" /> : <XCircleIcon className="w-6 h-6 text-red-500 flex-shrink-0 mt-1" />}
                         <div>
@@ -424,10 +423,10 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
                 </div>
                  <div>
                     <h3 className="font-bold text-lg mb-2">Vật phẩm hỗ trợ</h3>
-                     <button onClick={handleUseFiftyFifty} disabled={!canUseFiftyFifty} className="px-4 py-2 flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-gray-700/50 hover:bg-slate-200 dark:hover:bg-gray-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed group">
-                        {React.cloneElement(POWER_UPS_DATA[PowerUpId.FIFTY_FIFTY].icon, {className: "w-5 h-5"})}
-                        <span>50:50</span>
-                        <span className="text-xs font-bold bg-slate-300 dark:bg-gray-600 group-disabled:bg-slate-200 dark:group-disabled:bg-gray-700 rounded-full px-2 py-0.5">{fiftyFiftyCount}</span>
+                     <button onClick={handleRemoveOneWrong} disabled={!canUseRemoveOneWrong} className="px-4 py-2 flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-gray-700/50 hover:bg-slate-200 dark:hover:bg-gray-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed group">
+                        {React.cloneElement(POWER_UPS_DATA[PowerUpId.REMOVE_ONE_WRONG].icon, {className: "w-5 h-5"})}
+                        <span>Loại bỏ 1 sai</span>
+                        <span className="text-xs font-bold bg-slate-300 dark:bg-gray-600 group-disabled:bg-slate-200 dark:group-disabled:bg-gray-700 rounded-full px-2 py-0.5">{removeOneWrongCount}</span>
                     </button>
                 </div>
             </div>
@@ -503,12 +502,12 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
         }
     };
     
-    const handleUseFiftyFifty = () => {
+    const handleRemoveOneWrong = () => {
         if (!currentQuestion || optionsToRemove.length > 0) return;
-        usePowerUp(PowerUpId.FIFTY_FIFTY);
+        usePowerUp(PowerUpId.REMOVE_ONE_WRONG);
         const incorrectOptions = currentQuestion.options.filter(opt => !currentQuestion.correctAnswers.includes(opt));
         const shuffled = incorrectOptions.sort(() => 0.5 - Math.random());
-        setOptionsToRemove(shuffled.slice(0, 2));
+        setOptionsToRemove(shuffled.slice(0, 1));
     };
 
     const navigateQuestion = (direction: 'next' | 'prev') => {
@@ -645,8 +644,8 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
         return <p>Không có câu hỏi nào để hiển thị.</p>
     }
 
-    const fiftyFiftyCount = inventory[PowerUpId.FIFTY_FIFTY] || 0;
-    const canUseFiftyFifty = fiftyFiftyCount > 0 && !submittedAnswer && optionsToRemove.length === 0 && (currentQuestion.options.length - currentQuestion.correctAnswers.length) >= 2;
+    const removeOneWrongCount = inventory[PowerUpId.REMOVE_ONE_WRONG] || 0;
+    const canUseRemoveOneWrong = removeOneWrongCount > 0 && !submittedAnswer && optionsToRemove.length === 0 && (currentQuestion.options.length - currentQuestion.correctAnswers.length) >= 1;
 
     return (
         <div>
@@ -680,7 +679,7 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
                 })}
             </div>
             {submittedAnswer && (
-                 <div className={`mt-6 p-4 rounded-lg ${submittedAnswer.isCorrect ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/30'}`}>
+                 <div className={`mt-6 p-4 rounded-lg ${submittedAnswer.isCorrect ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:red-900/30'}`}>
                     <div className="flex items-start gap-2">
                          {submittedAnswer.isCorrect ? <CheckCircleIcon className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" /> : <XCircleIcon className="w-6 h-6 text-red-500 flex-shrink-0 mt-1" />}
                         <div>
@@ -715,10 +714,10 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
                 </div>
                 <div>
                     <h3 className="font-bold text-lg mb-2">Vật phẩm hỗ trợ</h3>
-                     <button onClick={handleUseFiftyFifty} disabled={!canUseFiftyFifty} className="px-4 py-2 flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-gray-700/50 hover:bg-slate-200 dark:hover:bg-gray-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed group">
-                        {React.cloneElement(POWER_UPS_DATA[PowerUpId.FIFTY_FIFTY].icon, {className: "w-5 h-5"})}
-                        <span>50:50</span>
-                        <span className="text-xs font-bold bg-slate-300 dark:bg-gray-600 group-disabled:bg-slate-200 dark:group-disabled:bg-gray-700 rounded-full px-2 py-0.5">{fiftyFiftyCount}</span>
+                     <button onClick={handleRemoveOneWrong} disabled={!canUseRemoveOneWrong} className="px-4 py-2 flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-gray-700/50 hover:bg-slate-200 dark:hover:bg-gray-600 font-semibold disabled:opacity-50 disabled:cursor-not-allowed group">
+                        {React.cloneElement(POWER_UPS_DATA[PowerUpId.REMOVE_ONE_WRONG].icon, {className: "w-5 h-5"})}
+                        <span>Loại bỏ 1 sai</span>
+                        <span className="text-xs font-bold bg-slate-300 dark:bg-gray-600 group-disabled:bg-slate-200 dark:group-disabled:bg-gray-700 rounded-full px-2 py-0.5">{removeOneWrongCount}</span>
                     </button>
                 </div>
             </div>

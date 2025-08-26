@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { getLevelInfo } from '../utils/helpers';
-import { CpuChipIcon, FireIcon, BadgeCheckIcon, SunIcon, MoonIcon, HeartIcon, MaximizeIcon, RestoreDownIcon, CoinIcon, ShoppingCartIcon, ClipboardCheckIcon } from './icons';
+import { CpuChipIcon, FireIcon, BadgeCheckIcon, SunIcon, MoonIcon, HeartIcon, MaximizeIcon, RestoreDownIcon, CoinIcon, ShoppingCartIcon, ClipboardCheckIcon, BriefcaseIcon, ShieldCheckIcon, BoltIcon } from './icons';
 import { BADGES_DATA } from '../constants';
 
 export const AppHeader = ({ 
     onToggleDark, isDarkMode, onProfileClick, onStreakClick, onXpBarClick, 
-    onHomeClick, isAtHome, onShopClick, onQuestsClick 
+    onHomeClick, isAtHome, onShopClick, onQuestsClick, onInventoryClick
 }: { 
     onToggleDark: () => void; isDarkMode: boolean; onProfileClick: () => void; 
     onStreakClick: () => void; onXpBarClick: () => void; onHomeClick: () => void; 
-    isAtHome: boolean; onShopClick: () => void; onQuestsClick: () => void; 
+    isAtHome: boolean; onShopClick: () => void; onQuestsClick: () => void; onInventoryClick: () => void;
 }) => {
     // Select only the specific state needed by this component
     const name = useUserStore(state => state.name);
@@ -19,6 +19,8 @@ export const AppHeader = ({
     const stethoCoins = useUserStore(state => state.stethoCoins);
     const unlockedBadges = useUserStore(state => state.unlockedBadges);
     const hasClaimableQuests = useUserStore(state => state.activeQuests.some(q => !q.claimed && q.progress >= q.target));
+    const activeBoosts = useUserStore(state => state.activeBoosts);
+    const isStreakShieldActive = useUserStore(state => state.isStreakShieldActive);
     
     const { level, name: levelName, progress, nextLevelXP } = getLevelInfo(xp);
 
@@ -26,6 +28,9 @@ export const AppHeader = ({
     const latestBadge = latestBadgeId ? BADGES_DATA[latestBadgeId] : null;
 
     const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
+    const isDoubleXpActive = activeBoosts?.DOUBLE_XP && activeBoosts.DOUBLE_XP.expiresAt > Date.now();
+    const isDoubleCoinsActive = activeBoosts?.DOUBLE_COINS && activeBoosts.DOUBLE_COINS.expiresAt > Date.now();
 
     const handleToggleFullscreen = () => {
         if (!document.fullscreenElement) {
@@ -97,6 +102,23 @@ export const AppHeader = ({
                             </div>
                         </button>
                     </div>
+                    <div className="flex items-center gap-1">
+                        {isDoubleXpActive && (
+                            <div className="p-1.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 group relative" title="x2 XP đang hoạt động">
+                                <BoltIcon className="w-4 h-4 text-indigo-500" />
+                            </div>
+                        )}
+                        {isDoubleCoinsActive && (
+                            <div className="p-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/50 group relative" title="x2 Coin đang hoạt động">
+                                <CoinIcon className="w-4 h-4 text-yellow-500" />
+                            </div>
+                        )}
+                         {isStreakShieldActive && (
+                            <div className="p-1.5 rounded-full bg-sky-100 dark:bg-sky-900/50 group relative" title="Khiên bảo vệ chuỗi đang hoạt động">
+                                <ShieldCheckIcon className="w-4 h-4 text-sky-500" />
+                            </div>
+                        )}
+                    </div>
                      <button onClick={onShopClick} className={`flex items-center gap-1 font-bold p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors text-yellow-500`}>
                         <CoinIcon className="w-5 h-5" />
                         <span>{stethoCoins}</span>
@@ -110,6 +132,9 @@ export const AppHeader = ({
                         {hasClaimableQuests && (
                             <span className="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800"></span>
                         )}
+                    </button>
+                     <button onClick={onInventoryClick} className="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors">
+                        <BriefcaseIcon className="w-6 h-6" />
                     </button>
                     <button onClick={onProfileClick} className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-gray-700 transition-colors relative group">
                         <BadgeDisplay />

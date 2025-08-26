@@ -27,6 +27,8 @@ const initialUserData: UserData = {
     totalCorrectAnswers: 0,
     perfectQuizCompletions: 0,
     inventory: {},
+    activeBoosts: {},
+    isStreakShieldActive: false,
     activeQuests: [],
     lastQuestRefresh: {
         daily: new Date(0).toISOString().split('T')[0],
@@ -91,6 +93,7 @@ interface UserActions {
     // Shop & Power-ups
     buyPowerUp: (powerUpId: PowerUpId) => void;
     usePowerUp: (powerUpId: PowerUpId) => void;
+    activatePowerUp: (powerUpId: PowerUpId) => void;
     // Quests
     refreshQuests: () => void;
     claimQuestReward: (questId: string) => void;
@@ -159,14 +162,24 @@ export const useUserStore = create<UserState & UserActions>()(
             },
             
             addXp: (amount, customMessage) => {
+                const state = get();
                 const roundedAmount = Math.round(amount);
                 if (roundedAmount <= 0) return;
+
+                const doubleXpBoost = state.activeBoosts?.DOUBLE_XP;
+                let finalAmount = roundedAmount;
+                let boostMessage = '';
+
+                if (doubleXpBoost && doubleXpBoost.expiresAt > Date.now()) {
+                    finalAmount *= 2;
+                    boostMessage = ` (x2 XP!)`;
+                }
             
                 const oldXp = get().xp;
                 const oldLevel = getLevelInfo(oldXp).level;
             
-                set(state => ({ xp: state.xp + roundedAmount }));
-                useUIStore.getState().showToast(customMessage || `+${roundedAmount} XP!`);
+                set(s => ({ xp: s.xp + finalAmount }));
+                useUIStore.getState().showToast(customMessage || `+${finalAmount} XP!${boostMessage}`);
             
                 const newXp = get().xp;
                 const newLevel = getLevelInfo(newXp).level;
@@ -175,14 +188,26 @@ export const useUserStore = create<UserState & UserActions>()(
                     const reward = newLevel * COIN_ACTIONS.LEVEL_UP_MULTIPLIER;
                     get().addStethoCoins(reward, `🎉 Lên cấp! +${reward} Stetho Coins`);
                 }
-                get().updateQuestProgress(QuestCategory.EARN_XP, roundedAmount);
+                get().updateQuestProgress(QuestCategory.EARN_XP, finalAmount);
             },
             
             addStethoCoins: (amount, customMessage) => {
+                const state = get();
                 const roundedAmount = Math.round(amount);
-                if (roundedAmount > 0) {
-                    set(state => ({ stethoCoins: state.stethoCoins + roundedAmount }));
-                    useUIStore.getState().showToast(customMessage || `🪙 +${roundedAmount} Stetho Coins!`);
+                if (roundedAmount <= 0) return;
+
+                const doubleCoinsBoost = state.activeBoosts?.DOUBLE_COINS;
+                let finalAmount = roundedAmount;
+                let boostMessage = '';
+
+                if (doubleCoinsBoost && doubleCoinsBoost.expiresAt > Date.now()) {
+                    finalAmount *= 2;
+                    boostMessage = ` (x2 Coins!)`;
+                }
+
+                if (finalAmount > 0) {
+                    set(s => ({ stethoCoins: s.stethoCoins + finalAmount }));
+                    useUIStore.getState().showToast(customMessage || `🪙 +${finalAmount} Stetho Coins!${boostMessage}`);
                 }
             },
             
@@ -233,7 +258,17 @@ export const useUserStore = create<UserState & UserActions>()(
                 const today = new Date(); today.setHours(0, 0, 0, 0);
                 const lastActivity = new Date(get().lastActivityDate); lastActivity.setHours(0, 0, 0, 0);
                 const diffDays = Math.round((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
-                if (diffDays > 1 && get().lastActivityDate !== new Date(0).toISOString()) { set({ streak: 0 }); }
+                if (diffDays > 1 && get().lastActivityDate !== new Date(0).toISOString()) {
+                    if (get().isStreakShieldActive) {
+                        set({ isStreakShieldActive: false });
+                        useUIStore.getState().showToast("🛡️ Khiên bảo vệ chuỗi đã được sử dụng!");
+                        const yesterday = new Date();
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        set({ lastActivityDate: yesterday.toISOString() });
+                    } else {
+                        set({ streak: 0 });
+                    }
+                }
             },
             
             handleActivity: () => {
@@ -1016,6 +1051,35 @@ export const useUserStore = create<UserState & UserActions>()(
                 }
             },
             
+            activatePowerUp: (powerUpId) => {
+                const state = get();
+                const currentCount = state.inventory[powerUpId] || 0;
+                if (currentCount <= 0) {
+                    useUIStore.getState().showToast('Bạn không có vật phẩm này!');
+                    return;
+                }
+            
+                set(s => ({
+                    inventory: { ...s.inventory, [powerUpId]: currentCount - 1 }
+                }));
+            
+                const powerUpData = POWER_UPS_DATA[powerUpId];
+                useUIStore.getState().showToast(`✨ Đã kích hoạt ${powerUpData.name}!`);
+            
+                if (powerUpId === PowerUpId.DOUBLE_XP || powerUpId === PowerUpId.DOUBLE_COINS) {
+                    const duration = 3600 * 1000; // 1 hour in ms
+                    const expiresAt = Date.now() + duration;
+                    set(s => ({
+                        activeBoosts: {
+                            ...s.activeBoosts,
+                            [powerUpId]: { expiresAt }
+                        }
+                    }));
+                } else if (powerUpId === PowerUpId.STREAK_SHIELD) {
+                    set({ isStreakShieldActive: true });
+                }
+            },
+
             refreshQuests: () => {
                 const now = new Date();
                 const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];

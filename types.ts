@@ -145,7 +145,10 @@ export interface ChatMessage {
 }
 
 export enum PowerUpId {
-    FIFTY_FIFTY = 'FIFTY_FIFTY',
+    DOUBLE_XP = 'DOUBLE_XP',
+    DOUBLE_COINS = 'DOUBLE_COINS',
+    STREAK_SHIELD = 'STREAK_SHIELD',
+    REMOVE_ONE_WRONG = 'REMOVE_ONE_WRONG',
 }
 
 export interface PowerUp {
@@ -208,4 +211,6 @@ export interface UserData {
         weekly: string;
     };
     tributeClaimed?: boolean;
+    activeBoosts?: Partial<Record<'DOUBLE_XP' | 'DOUBLE_COINS', { expiresAt: number }>>;
+    isStreakShieldActive?: boolean;
 }

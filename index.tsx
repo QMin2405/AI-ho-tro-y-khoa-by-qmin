@@ -16,6 +16,7 @@ import { ConfirmModal } from './components/modals/ConfirmModal';
 import { ToastNotification } from './components/ui/ToastNotification';
 import { ShopModal } from './components/modals/ShopModal';
 import { QuestsModal } from './components/modals/QuestsModal';
+import { InventoryModal } from './components/modals/InventoryModal';
 
 const App = () => {
     // UI state that's local to the App shell
@@ -32,6 +33,7 @@ const App = () => {
     const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
     const [isShopModalOpen, setIsShopModalOpen] = useState(false);
     const [isQuestsModalOpen, setIsQuestsModalOpen] = useState(false);
+    const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
 
 
     // Get state and actions from stores
@@ -115,6 +117,7 @@ const App = () => {
                 isAtHome={isAtHome}
                 onShopClick={() => setIsShopModalOpen(true)}
                 onQuestsClick={() => setIsQuestsModalOpen(true)}
+                onInventoryClick={() => setIsInventoryModalOpen(true)}
             />
             <main className="flex-grow">
                 {activeView === 'dashboard' && (
@@ -177,6 +180,12 @@ const App = () => {
                 <QuestsModal
                     isOpen={isQuestsModalOpen}
                     onClose={() => setIsQuestsModalOpen(false)}
+                />
+            )}
+             {isInventoryModalOpen && (
+                <InventoryModal
+                    isOpen={isInventoryModalOpen}
+                    onClose={() => setIsInventoryModalOpen(false)}
                 />
             )}
             
