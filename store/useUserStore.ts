@@ -628,7 +628,8 @@ export const useUserStore = create<UserState & UserActions>()(
                 get().checkAndAwardBadges();
             },
             
-            generateMoreQuestions: async (packId, isM2Style, options = {}) => {
+            // Fix: Add explicit type annotation for the 'options' parameter to resolve property access error.
+            generateMoreQuestions: async (packId: string, isM2Style: boolean, options: { startNewSessionWithNewQuestions?: boolean } = {}) => {
                 const { startNewSessionWithNewQuestions = false } = options;
                 const pack = get().studyPacks.find(p => p.id === packId);
                 if (!pack) return;

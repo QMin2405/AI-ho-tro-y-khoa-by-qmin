@@ -34,7 +34,8 @@ export const InventoryModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
     if (!isOpen) return null;
 
     const ownedPowerUps = Object.entries(inventory)
-        .filter(([, count]) => (count || 0) > 0)
+        // Fix: Added a more robust type check to ensure 'count' is a number before comparison.
+        .filter(([, count]) => typeof count === 'number' && count > 0)
         .map(([id]) => id as PowerUpId);
 
     const isDoubleXpActive = activeBoosts?.DOUBLE_XP && activeBoosts.DOUBLE_XP.expiresAt > currentTime;
