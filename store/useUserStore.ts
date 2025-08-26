@@ -32,6 +32,8 @@ const initialUserData: UserData = {
         weekly: new Date(0).toISOString().split('T')[0],
     },
     tutorXpGainsToday: { count: 0, date: new Date(0).toISOString().split('T')[0], limitNotified: false },
+    boostedPackIds: [],
+    coinBoostExpiry: null,
 };
 
 // Define the state shape
@@ -50,7 +52,7 @@ interface UserActions {
     importUserData: (file: File) => void;
     logout: () => void;
     changeName: (newName: string) => void;
-    addXp: (amount: number, customMessage?: string) => void;
+    addXp: (amount: number, customMessage?: string, packId?: string) => void;
     addStethoCoins: (amount: number, customMessage?: string) => void;
     checkAndAwardBadges: () => void;
     checkDailyStreak: () => void;
@@ -90,6 +92,8 @@ interface UserActions {
     // Shop & Power-ups
     buyPowerUp: (powerUpId: PowerUpId) => void;
     usePowerUp: (powerUpId: PowerUpId) => void;
+    activateXpBoost: (packId: string) => void;
+    activateCoinBoost: () => void;
     // Quests
     refreshQuests: () => void;
     claimQuestReward: (questId: string) => void;
@@ -155,15 +159,22 @@ export const useUserStore = create<UserState & UserActions>()(
                 } else { set({ isLoggedIn: false }); }
             },
             
-            addXp: (amount, customMessage) => {
-                const roundedAmount = Math.round(amount);
-                if (roundedAmount <= 0) return;
+            addXp: (amount, customMessage, packId) => {
+                const state = get();
+                let finalAmount = Math.round(amount);
+                if (finalAmount <= 0) return;
             
-                const oldXp = get().xp;
+                let xpBoostMessage = '';
+                if (packId && state.boostedPackIds?.includes(packId)) {
+                    finalAmount *= 2;
+                    xpBoostMessage = ' (x2 Boost!)';
+                }
+
+                const oldXp = state.xp;
                 const oldLevel = getLevelInfo(oldXp).level;
             
-                set(state => ({ xp: state.xp + roundedAmount }));
-                useUIStore.getState().showToast(customMessage || `+${roundedAmount} XP!`);
+                set(s => ({ xp: s.xp + finalAmount }));
+                useUIStore.getState().showToast(customMessage ? `${customMessage}${xpBoostMessage}` : `+${finalAmount} XP!${xpBoostMessage}`);
             
                 const newXp = get().xp;
                 const newLevel = getLevelInfo(newXp).level;
@@ -172,14 +183,23 @@ export const useUserStore = create<UserState & UserActions>()(
                     const reward = newLevel * COIN_ACTIONS.LEVEL_UP_MULTIPLIER;
                     get().addStethoCoins(reward, `🎉 Lên cấp! +${reward} Stetho Coins`);
                 }
-                get().updateQuestProgress(QuestCategory.EARN_XP, roundedAmount);
+                get().updateQuestProgress(QuestCategory.EARN_XP, finalAmount);
             },
             
             addStethoCoins: (amount, customMessage) => {
-                const roundedAmount = Math.round(amount);
-                if (roundedAmount > 0) {
-                    set(state => ({ stethoCoins: state.stethoCoins + roundedAmount }));
-                    useUIStore.getState().showToast(customMessage || `🪙 +${roundedAmount} Stetho Coins!`);
+                let finalAmount = Math.round(amount);
+                const state = get();
+                const now = new Date();
+                let boostMessage = '';
+
+                if (state.coinBoostExpiry && new Date(state.coinBoostExpiry) > now) {
+                    finalAmount *= 2;
+                    boostMessage = ' (x2 Boost!)';
+                }
+
+                if (finalAmount > 0) {
+                    set(s => ({ stethoCoins: s.stethoCoins + finalAmount }));
+                    useUIStore.getState().showToast(customMessage ? `${customMessage}${boostMessage}` : `🪙 +${finalAmount} Stetho Coins!${boostMessage}`);
                 }
             },
             
@@ -230,7 +250,20 @@ export const useUserStore = create<UserState & UserActions>()(
                 const today = new Date(); today.setHours(0, 0, 0, 0);
                 const lastActivity = new Date(get().lastActivityDate); lastActivity.setHours(0, 0, 0, 0);
                 const diffDays = Math.round((today.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
-                if (diffDays > 1 && get().lastActivityDate !== new Date(0).toISOString()) { set({ streak: 0 }); }
+
+                if (diffDays > 1 && get().lastActivityDate !== new Date(0).toISOString()) {
+                    const shields = get().inventory[PowerUpId.STREAK_SHIELD] || 0;
+                    if (shields > 0) {
+                        get().usePowerUp(PowerUpId.STREAK_SHIELD);
+                        // To "save" the streak, we pretend the user was active yesterday.
+                        const yesterday = new Date();
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        set({ lastActivityDate: yesterday.toISOString() });
+                        useUIStore.getState().showToast('🛡️ Khiên bảo vệ đã cứu chuỗi của bạn!');
+                    } else {
+                        set({ streak: 0 });
+                    }
+                }
             },
             
             handleActivity: () => {
@@ -312,7 +345,7 @@ export const useUserStore = create<UserState & UserActions>()(
                         hasBeenCustomized: false,
                     };
                     set(state => ({ studyPacks: [...state.studyPacks, newPack] }));
-                    addXp(XP_ACTIONS.CREATE_PACK);
+                    addXp(XP_ACTIONS.CREATE_PACK, `+${XP_ACTIONS.CREATE_PACK} XP khi tạo gói mới!`);
                     handleActivity();
                     updateQuestProgress(QuestCategory.CREATE_PACK, 1);
                     return true;
@@ -345,7 +378,7 @@ export const useUserStore = create<UserState & UserActions>()(
             
                     if (hasBeenTrulyCustomized) {
                         if (!oldPack.hasBeenCustomized) {
-                            get().addXp(XP_ACTIONS.PERSONAL_TOUCH);
+                            get().addXp(XP_ACTIONS.PERSONAL_TOUCH, `+${XP_ACTIONS.PERSONAL_TOUCH} XP cho Dấu ấn cá nhân!`);
                             updatedPack.hasBeenCustomized = true; 
                         }
             
@@ -395,7 +428,7 @@ export const useUserStore = create<UserState & UserActions>()(
                         ? `+${xpGained} XP! (Thưởng chuỗi x${streakMultiplier.toFixed(1)})`
                         : `+${xpGained} XP!`;
                     
-                    get().addXp(xpGained, toastMessage);
+                    get().addXp(xpGained, toastMessage, packId);
                     get().updateQuestProgress(QuestCategory.ANSWER_CORRECTLY, 1);
 
                     let coinsGained = 0;
@@ -509,8 +542,10 @@ export const useUserStore = create<UserState & UserActions>()(
                     if (newComboCount > 1) baseAmount += QUIZ_COMBO_BONUS * (newComboCount - 1);
                     const streakMultiplier = state.streak > 1 ? 1 + (state.streak - 1) * 0.2 : 1;
                     xpGained = Math.round(baseAmount * streakMultiplier);
+                    
                     toastMessage = streakMultiplier > 1 ? `+${xpGained} XP! (Thưởng chuỗi x${streakMultiplier.toFixed(1)})` : `+${xpGained} XP!`;
-                    get().addXp(xpGained, toastMessage);
+
+                    get().addXp(xpGained, toastMessage, packId);
                     get().updateQuestProgress(QuestCategory.ANSWER_CORRECTLY, 1);
 
                     let coinsGained = 0;
@@ -590,95 +625,87 @@ export const useUserStore = create<UserState & UserActions>()(
                             const packToUpdate = state.studyPacks.find(p => p.id === packId);
                             if (!packToUpdate) return state;
 
-                            const quizKey = isM2Style ? 'm2StaatexamQuiz' : 'quiz';
-                            const sessionKey = isM2Style ? 'm2StaatexamQuizSession' : 'quizSession';
-                            const currentQuiz = packToUpdate[quizKey] || [];
-                            const newQuestions = newQuestionsData.map((q, i) => ({
-                                ...q,
-                                uniqueId: `${packId}_${isM2Style ? 'm2' : 'q'}_${Date.now()}_${i}`
-                            }));
-                            const updatedQuiz = [...currentQuiz, ...newQuestions];
-                            
-                            const updatedSession = packToUpdate[sessionKey] ? {
-                                ...packToUpdate[sessionKey]!,
-                                currentQuestionIndex: 0,
-                                submittedAnswers: {},
-                                incorrectlyAnsweredIds: [],
-                                activeQuestionIds: updatedQuiz.map(q => q.uniqueId)
-                            } : undefined;
+                            let updatedPack: StudyPack;
+                            let newSession: QuizSession | undefined;
 
-                            const updatedPack = {
-                                ...packToUpdate,
-                                [quizKey]: updatedQuiz,
-                                [sessionKey]: updatedSession
-                            };
+                            if (isM2Style) {
+                                const baseQuiz = packToUpdate.m2StaatexamQuiz || [];
+                                const newQuestions = newQuestionsData.map((q, i) => ({ ...q, uniqueId: `${packId}_m2_gen_${Date.now()}_${i}` }));
+                                const updatedQuiz = [...baseQuiz, ...newQuestions];
+                                newSession = { ...packToUpdate.m2StaatexamQuizSession!, activeQuestionIds: updatedQuiz.map(q => q.uniqueId) };
+                                updatedPack = { ...packToUpdate, m2StaatexamQuiz: updatedQuiz, m2StaatexamQuizSession: newSession };
+                            } else {
+                                const baseQuiz = packToUpdate.quiz || [];
+                                const newQuestions = newQuestionsData.map((q, i) => ({ ...q, uniqueId: `${packId}_q_gen_${Date.now()}_${i}` }));
+                                const updatedQuiz = [...baseQuiz, ...newQuestions];
+                                newSession = { ...packToUpdate.quizSession!, activeQuestionIds: updatedQuiz.map(q => q.uniqueId) };
+                                updatedPack = { ...packToUpdate, quiz: updatedQuiz, quizSession: newSession };
+                            }
+
+                            get().addXp(newQuestionsData.length * 10, `+${newQuestionsData.length * 10} XP vì tạo câu hỏi mới!`);
+                            set(s => ({ generatedQuestionCount: s.generatedQuestionCount + newQuestionsData.length }));
 
                             return {
-                                studyPacks: state.studyPacks.map(p => p.id === packId ? updatedPack : p),
-                                generatedQuestionCount: state.generatedQuestionCount + newQuestions.length,
+                                studyPacks: state.studyPacks.map(p => p.id === packId ? updatedPack : p)
                             };
                         });
-                        get().addXp(XP_ACTIONS.ASK_AI * 2);
-                        useUIStore.getState().showToast(`✨ Đã tạo ${newQuestionsData.length} câu hỏi mới!`);
-                    } else {
-                         useUIStore.getState().showToast(`Không thể tạo thêm câu hỏi vào lúc này.`);
                     }
                 } catch (error) {
-                    console.error("Error generating more questions:", error);
-                    useUIStore.getState().showToast("Lỗi: Không thể tạo thêm câu hỏi.");
+                    console.error("Failed to generate more questions", error);
                 } finally {
                     set({ isGenerating: false });
                 }
             },
-
+            // --- Tutor Actions ---
             openTutor: (greeting) => {
                 set(state => {
-                    const messages = state.tutorMessages.length > 0 ? state.tutorMessages : [{ sender: 'ai', text: greeting || 'Chào bạn! Tôi có thể giúp gì cho bạn?' } as ChatMessage];
-                    return { tutorState: 'open', tutorMessages: messages };
+                    const newMessages = state.tutorMessages.length === 0 
+                        // FIX: Explicitly type the sender property to match ChatMessage['sender']
+                        ? [{ sender: 'ai' as const, text: greeting || 'Chào bạn! Tôi có thể giúp gì cho bạn?' }]
+                        : state.tutorMessages;
+                    return { tutorState: 'open', tutorMessages: newMessages };
                 });
             },
-            closeTutor: () => set({ tutorState: 'closed', tutorContext: undefined, tutorMessages: [] }),
+            closeTutor: () => set({ tutorState: 'closed', tutorMessages: [] }),
             minimizeTutor: () => set({ tutorState: 'minimized' }),
             toggleTutorSize: () => set(state => ({ tutorState: state.tutorState === 'maximized' ? 'open' : 'maximized' })),
             
             sendMessageToTutor: async (message) => {
-                if (get().isTutorLoading) return;
-                
-                const today = new Date().toISOString().split('T')[0];
-                let tutorXpData = get().tutorXpGainsToday || { count: 0, date: today, limitNotified: false };
-                if (tutorXpData.date !== today) {
-                    tutorXpData = { count: 0, date: today, limitNotified: false };
-                }
-
                 set(state => ({
-                    isTutorLoading: true,
                     tutorMessages: [...state.tutorMessages, { sender: 'user', text: message }],
+                    isTutorLoading: true,
                 }));
 
-                const fullLessonContext = get().studyPacks.map(p => p.lesson.map(l => l.content).join('\n')).join('\n\n');
-                
-                try {
-                    const response = await askTutor(fullLessonContext, message, get().tutorContext);
-                    set(state => ({
-                        tutorMessages: [...state.tutorMessages, { sender: 'ai', text: response }],
-                        questionsAskedCount: state.questionsAskedCount + 1,
-                    }));
-                    get().handleActivity();
+                const today = new Date().toISOString().split('T')[0];
+                const gainsToday = get().tutorXpGainsToday?.date === today ? get().tutorXpGainsToday!.count : 0;
 
-                    if (tutorXpData.count < 10) {
-                        get().addXp(XP_ACTIONS.ASK_AI);
-                        set({ tutorXpGainsToday: { ...tutorXpData, count: tutorXpData.count + 1 } });
-                    } else if (!tutorXpData.limitNotified) {
+                if (gainsToday < 10) { // Limit XP from tutor to 10 times a day
+                    get().addXp(XP_ACTIONS.ASK_AI);
+                    set(state => ({ tutorXpGainsToday: { count: gainsToday + 1, date: today, limitNotified: state.tutorXpGainsToday?.limitNotified } }));
+                } else {
+                    const notified = get().tutorXpGainsToday?.limitNotified;
+                    if (!notified) {
                         useUIStore.getState().showToast("Bạn đã đạt giới hạn XP nhận được từ Gia sư AI hôm nay.");
-                        set({ tutorXpGainsToday: { ...tutorXpData, limitNotified: true } });
+                        set(state => ({ tutorXpGainsToday: { ...state.tutorXpGainsToday!, limitNotified: true } }));
                     }
+                }
+                
+                set(state => ({ questionsAskedCount: state.questionsAskedCount + 1 }));
+                get().handleActivity();
 
+                try {
+                    const studyPackContext = get().studyPacks.map(p => `- ${p.title}`).join('\n');
+                    const fullContext = `Bối cảnh các Gói học tập hiện tại:\n${studyPackContext}`;
+                    const aiResponse = await askTutor(fullContext, message, get().tutorContext);
+                    set(state => ({
+                        tutorMessages: [...state.tutorMessages, { sender: 'ai', text: aiResponse }],
+                        isTutorLoading: false,
+                    }));
                 } catch (error) {
                     set(state => ({
                         tutorMessages: [...state.tutorMessages, { sender: 'ai', text: "Xin lỗi, tôi gặp lỗi khi xử lý yêu cầu của bạn." }],
+                        isTutorLoading: false,
                     }));
-                } finally {
-                    set({ isTutorLoading: false });
                 }
             },
 
@@ -687,304 +714,138 @@ export const useUserStore = create<UserState & UserActions>()(
                 get().openTutor(greeting);
             },
             clearTutorContext: () => set({ tutorContext: undefined }),
-
+            
+            // --- Folder & Pack Management ---
             createFolder: (parentId) => {
                 const newFolder: Folder = {
                     id: `folder_${Date.now()}`,
-                    name: 'Thư mục mới',
-                    parentId: parentId || null,
+                    name: "Thư mục mới",
+                    parentId,
                 };
                 set(state => ({ folders: [...state.folders, newFolder] }));
             },
+            
             updateFolder: (id, newName, newIcon) => {
                 set(state => ({
-                    folders: state.folders.map(f => f.id === id ? { ...f, name: newName, icon: newIcon } : f),
-                }));
-            },
-            movePacksToFolder: (packIds, folderId) => {
-                set(state => ({
-                    studyPacks: state.studyPacks.map(p => packIds.includes(p.id) ? { ...p, folderId: folderId } : p),
+                    folders: state.folders.map(f => f.id === id ? { ...f, name: newName, icon: newIcon } : f)
                 }));
             },
             
-            softDeleteItem: (id, type) => {
-                const state = get();
-                let xpToDeduct = 0;
-                const deletionTimestamp = new Date().toISOString();
-
-                const calculateXpForPack = (pack: StudyPack) => {
-                    let packXp = XP_ACTIONS.CREATE_PACK;
-                    if (pack.hasBeenCustomized) {
-                        packXp += XP_ACTIONS.PERSONAL_TOUCH;
-                    }
-                    const allQuestionsInPack = [...(pack.quiz || []), ...(pack.m2StaatexamQuiz || [])];
-                    for (const question of allQuestionsInPack) {
-                        if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
-                            const baseAmount = XP_ACTIONS.QUIZ_CORRECT_ANSWER + (QUIZ_DIFFICULTY_POINTS[question.difficulty as QuizDifficulty] || 0);
-                            packXp += baseAmount;
-                        }
-                    }
-                    return packXp;
-                };
-
-                if (type === 'pack') {
-                    const packToSoftDelete = state.studyPacks.find(p => p.id === id);
-                    if (packToSoftDelete) {
-                        xpToDeduct = calculateXpForPack(packToSoftDelete);
-                        set(s => ({
-                            studyPacks: s.studyPacks.map(p => p.id === id ? { ...p, isDeleted: true, deletedAt: deletionTimestamp } : p),
-                            xp: Math.max(0, s.xp - xpToDeduct)
-                        }));
-                    }
-                } else {
-                    const { folderIds, packIds } = getDescendantIds(id, state.folders, state.studyPacks);
-                    const allFoldersToDelete = [id, ...folderIds];
-                    const packsToSoftDelete = state.studyPacks.filter(p => packIds.includes(p.id));
-
-                    packsToSoftDelete.forEach(pack => {
-                        xpToDeduct += calculateXpForPack(pack);
-                    });
-
-                    set(s => ({
-                        folders: s.folders.map(f => allFoldersToDelete.includes(f.id) ? { ...f, isDeleted: true, deletedAt: deletionTimestamp } : f),
-                        studyPacks: s.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: true, deletedAt: deletionTimestamp } : p),
-                        xp: Math.max(0, s.xp - xpToDeduct)
-                    }));
-                }
-                useUIStore.getState().showToast(`Đã chuyển vào thùng rác. Đã trừ ${xpToDeduct} XP.`);
+            movePacksToFolder: (packIds, folderId) => {
+                set(state => ({
+                    studyPacks: state.studyPacks.map(p => packIds.includes(p.id) ? { ...p, folderId: folderId } : p)
+                }));
             },
             
             requestSoftDelete: (id, type) => {
-                 const { softDeleteItem } = get();
-                useUIStore.getState().showConfirmModal({
-                    title: `Chuyển vào thùng rác?`,
-                    text: `Mục này sẽ được chuyển vào thùng rác. Tất cả XP kiếm được từ mục này sẽ bị trừ ngay lập tức. Bạn có thể khôi phục lại cả mục và XP sau.`,
-                    confirmText: 'Chuyển vào thùng rác',
-                    onConfirm: () => softDeleteItem(id, type),
-                    isDestructive: true,
-                });
+                 const onConfirm = () => get().softDeleteItem(id, type);
+                 useUIStore.getState().showConfirmModal({
+                     title: `Xóa ${type === 'pack' ? 'Gói học tập' : 'Thư mục'}?`,
+                     text: `Mục này sẽ được chuyển vào thùng rác và xóa vĩnh viễn sau 30 ngày.`,
+                     confirmText: "Chuyển vào thùng rác",
+                     onConfirm,
+                     // FIX: Removed `onCancel` as it's handled automatically by the UI store.
+                     isDestructive: true,
+                 });
+            },
+            
+            softDeleteItem: (id, type) => {
+                const deletedAt = new Date().toISOString();
+                if (type === 'pack') {
+                    set(state => ({
+                        studyPacks: state.studyPacks.map(p => p.id === id ? { ...p, isDeleted: true, deletedAt } : p)
+                    }));
+                } else { // type === 'folder'
+                    const { folderIds, packIds } = getDescendantIds(id, get().folders, get().studyPacks);
+                    const allFolderIdsToDelete = [id, ...folderIds];
+                    
+                    set(state => ({
+                        folders: state.folders.map(f => allFolderIdsToDelete.includes(f.id) ? { ...f, isDeleted: true, deletedAt } : f),
+                        studyPacks: state.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: true, deletedAt } : p)
+                    }));
+                }
             },
             
             restoreItem: (id, type) => {
-                const state = get();
-                let xpToRestore = 0;
-
-                const calculateXpForPack = (pack: StudyPack) => {
-                    let packXp = XP_ACTIONS.CREATE_PACK;
-                    if (pack.hasBeenCustomized) {
-                        packXp += XP_ACTIONS.PERSONAL_TOUCH;
-                    }
-                    const allQuestionsInPack = [...(pack.quiz || []), ...(pack.m2StaatexamQuiz || [])];
-                    for (const question of allQuestionsInPack) {
-                        if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
-                            const baseAmount = XP_ACTIONS.QUIZ_CORRECT_ANSWER + (QUIZ_DIFFICULTY_POINTS[question.difficulty as QuizDifficulty] || 0);
-                            packXp += baseAmount;
-                        }
-                    }
-                    return packXp;
-                };
-
                 if (type === 'pack') {
-                    const packToRestore = state.studyPacks.find(p => p.id === id);
-                    if (packToRestore) {
-                        xpToRestore = calculateXpForPack(packToRestore);
-                        const parentIsDeleted = state.folders.some(f => f.id === packToRestore.folderId && f.isDeleted);
-                        set(s => ({
-                            studyPacks: s.studyPacks.map(p => p.id === id ? { ...p, isDeleted: false, deletedAt: undefined, folderId: parentIsDeleted ? null : p.folderId } : p),
-                            xp: s.xp + xpToRestore
-                        }));
-                    }
-                } else {
-                    const { folderIds, packIds } = getDescendantIds(id, state.folders, state.studyPacks);
-                    const allFoldersToRestore = [id, ...folderIds];
-                    const packsToRestore = state.studyPacks.filter(p => packIds.includes(p.id));
-
-                    packsToRestore.forEach(pack => {
-                        xpToRestore += calculateXpForPack(pack);
-                    });
+                    set(state => ({
+                        studyPacks: state.studyPacks.map(p => p.id === id ? { ...p, isDeleted: false, deletedAt: undefined } : p)
+                    }));
+                } else { // type === 'folder'
+                    const { folderIds, packIds } = getDescendantIds(id, get().folders, get().studyPacks);
+                    const allFolderIdsToRestore = [id, ...folderIds];
                     
-                    const folderToRestore = state.folders.find(f => f.id === id);
-                    const parentIsDeleted = state.folders.some(f => f.id === folderToRestore?.parentId && f.isDeleted);
-                    
-                    set(s => ({
-                        folders: s.folders.map(f => allFoldersToRestore.includes(f.id) 
-                            ? { ...f, isDeleted: false, deletedAt: undefined, parentId: (f.id === id && parentIsDeleted) ? null : f.parentId } 
-                            : f),
-                        studyPacks: s.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: false, deletedAt: undefined } : p),
-                        xp: s.xp + xpToRestore
+                    set(state => ({
+                        folders: state.folders.map(f => allFolderIdsToRestore.includes(f.id) ? { ...f, isDeleted: false, deletedAt: undefined } : f),
+                        studyPacks: state.studyPacks.map(p => packIds.includes(p.id) ? { ...p, isDeleted: false, deletedAt: undefined } : p)
                     }));
                 }
-                useUIStore.getState().showToast(`Đã khôi phục. Đã hoàn lại ${xpToRestore} XP.`);
+            },
+            
+            requestPermanentDelete: (id, type) => {
+                const onConfirm = () => get().permanentDeleteItem(id, type);
+                useUIStore.getState().showConfirmModal({
+                     title: `Xóa vĩnh viễn?`,
+                     text: `Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan sẽ bị xóa.`,
+                     confirmText: "Xóa vĩnh viễn",
+                     onConfirm,
+                     // FIX: Removed `onCancel` as it's handled automatically by the UI store.
+                     isDestructive: true,
+                 });
             },
             
             permanentDeleteItem: (id, type) => {
                 if (type === 'pack') {
-                    set(state => {
-                        const packToDelete = state.studyPacks.find(p => p.id === id);
-                        if (!packToDelete) return state;
-
-                        const allQuestionsInPack = [...(packToDelete.quiz || []), ...(packToDelete.m2StaatexamQuiz || [])];
-                        const answeredQuestionIdsInPack = new Set<string>();
-
-                        for (const question of allQuestionsInPack) {
-                            if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
-                                answeredQuestionIdsInPack.add(question.uniqueId);
-                            }
-                        }
-                        
-                        const newCorrectlyAnsweredQuizIds = state.correctlyAnsweredQuizIds.filter(qid => !answeredQuestionIdsInPack.has(qid));
-                        const newTotalCorrectAnswers = state.totalCorrectAnswers - answeredQuestionIdsInPack.size;
-
-                        return { 
-                            studyPacks: state.studyPacks.filter(p => p.id !== id),
-                            correctlyAnsweredQuizIds: newCorrectlyAnsweredQuizIds,
-                            totalCorrectAnswers: newTotalCorrectAnswers
-                        };
-                    });
-                } else {
+                    set(state => ({ studyPacks: state.studyPacks.filter(p => p.id !== id) }));
+                } else { // type === 'folder'
                     const { folderIds, packIds } = getDescendantIds(id, get().folders, get().studyPacks);
                     const allFolderIdsToDelete = [id, ...folderIds];
-
-                    set(state => {
-                        const allAnsweredIdsToClear = new Set<string>();
-                        const packsToDelete = state.studyPacks.filter(p => packIds.includes(p.id));
-
-                        for (const packToDelete of packsToDelete) {
-                            const allQuestionsInPack = [...(packToDelete.quiz || []), ...(packToDelete.m2StaatexamQuiz || [])];
-                            for (const question of allQuestionsInPack) {
-                                if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
-                                    allAnsweredIdsToClear.add(question.uniqueId);
-                                }
-                            }
-                        }
-
-                        const newCorrectlyAnsweredQuizIds = state.correctlyAnsweredQuizIds.filter(qid => !allAnsweredIdsToClear.has(qid));
-                        const newTotalCorrectAnswers = state.totalCorrectAnswers - allAnsweredIdsToClear.size;
-
-                        return {
-                            folders: state.folders.filter(f => !allFolderIdsToDelete.includes(f.id)),
-                            studyPacks: state.studyPacks.filter(p => !packIds.includes(p.id)),
-                            correctlyAnsweredQuizIds: newCorrectlyAnsweredQuizIds,
-                            totalCorrectAnswers: newTotalCorrectAnswers
-                        };
-                    });
-                }
-                useUIStore.getState().showToast("Đã xóa vĩnh viễn.");
-            },
-
-            requestPermanentDelete: (id, type) => {
-                const { permanentDeleteItem } = get();
-                useUIStore.getState().showConfirmModal({
-                    title: `Xóa vĩnh viễn?`,
-                    text: 'Hành động này sẽ xóa vĩnh viễn mục này và tất cả tiến trình liên quan. Hành động này không thể hoàn tác.',
-                    confirmText: 'Xóa vĩnh viễn',
-                    onConfirm: () => permanentDeleteItem(id, type),
-                    isDestructive: true,
-                });
-            },
-
-            restoreAll: () => {
-                const state = get();
-                let totalXpToRestore = 0;
-
-                const calculateXpForPack = (pack: StudyPack) => {
-                    let packXp = XP_ACTIONS.CREATE_PACK;
-                    if (pack.hasBeenCustomized) {
-                        packXp += XP_ACTIONS.PERSONAL_TOUCH;
-                    }
-                    const allQuestionsInPack = [...(pack.quiz || []), ...(pack.m2StaatexamQuiz || [])];
-                    for (const question of allQuestionsInPack) {
-                        if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
-                            const baseAmount = XP_ACTIONS.QUIZ_CORRECT_ANSWER + (QUIZ_DIFFICULTY_POINTS[question.difficulty as QuizDifficulty] || 0);
-                            packXp += baseAmount;
-                        }
-                    }
-                    return packXp;
-                };
-
-                state.studyPacks.forEach(pack => {
-                    if (pack.isDeleted) {
-                        totalXpToRestore += calculateXpForPack(pack);
-                    }
-                });
-
-                set(s => ({
-                    folders: s.folders.map(f => f.isDeleted ? { ...f, isDeleted: false, deletedAt: undefined } : f),
-                    studyPacks: s.studyPacks.map(p => p.isDeleted ? { ...p, isDeleted: false, deletedAt: undefined } : p),
-                    xp: s.xp + totalXpToRestore
-                }));
-                useUIStore.getState().showToast(`Đã khôi phục tất cả. Đã hoàn lại ${totalXpToRestore} XP.`);
-            },
-
-            permanentDeleteAll: () => {
-                set(state => {
-                    const allAnsweredIdsToClear = new Set<string>();
-                    const packsToDelete = state.studyPacks.filter(p => p.isDeleted);
-            
-                    for (const packToDelete of packsToDelete) {
-                        const allQuestionsInPack = [...(packToDelete.quiz || []), ...(packToDelete.m2StaatexamQuiz || [])];
-                        for (const question of allQuestionsInPack) {
-                            if (state.correctlyAnsweredQuizIds.includes(question.uniqueId)) {
-                                allAnsweredIdsToClear.add(question.uniqueId);
-                            }
-                        }
-                    }
                     
-                    const newCorrectlyAnsweredQuizIds = state.correctlyAnsweredQuizIds.filter(qid => !allAnsweredIdsToClear.has(qid));
-                    const newTotalCorrectAnswers = state.totalCorrectAnswers - allAnsweredIdsToClear.size;
-            
-                    return {
-                        folders: state.folders.filter(f => !f.isDeleted),
-                        studyPacks: state.studyPacks.filter(p => !p.isDeleted),
-                        correctlyAnsweredQuizIds: newCorrectlyAnsweredQuizIds,
-                        totalCorrectAnswers: newTotalCorrectAnswers
-                    };
-                });
-                useUIStore.getState().showToast("Đã dọn sạch thùng rác.");
-            },
-
-            requestPermanentDeleteAll: () => {
-                 const { permanentDeleteAll } = get();
-                useUIStore.getState().showConfirmModal({
-                    title: `Dọn sạch thùng rác?`,
-                    text: `Tất cả các mục trong thùng rác sẽ bị xóa vĩnh viễn cùng với tiến trình liên quan. Hành động này không thể hoàn tác.`,
-                    confirmText: 'Xóa vĩnh viễn',
-                    onConfirm: () => permanentDeleteAll(),
-                    isDestructive: true,
-                });
-            },
-
-            autoCleanupTrash: () => {
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-                const state = get();
-                const expiredPacks = state.studyPacks.filter(p => 
-                    p.isDeleted && p.deletedAt && new Date(p.deletedAt) < thirtyDaysAgo
-                );
-                const expiredFolders = state.folders.filter(f => 
-                    f.isDeleted && f.deletedAt && new Date(f.deletedAt) < thirtyDaysAgo
-                );
-                
-                let deletedCount = 0;
-                
-                expiredPacks.forEach(pack => {
-                    get().permanentDeleteItem(pack.id, 'pack');
-                    deletedCount++;
-                });
-                expiredFolders.forEach(folder => {
-                    get().permanentDeleteItem(folder.id, 'folder');
-                    deletedCount++;
-                });
-                
-                if (deletedCount > 0) {
-                    useUIStore.getState().showToast(`Đã tự động xóa ${deletedCount} mục cũ khỏi thùng rác.`);
+                    set(state => ({
+                        folders: state.folders.filter(f => !allFolderIdsToDelete.includes(f.id)),
+                        studyPacks: state.studyPacks.filter(p => !packIds.includes(p.id))
+                    }));
                 }
             },
             
+            restoreAll: () => {
+                set(state => ({
+                    studyPacks: state.studyPacks.map(p => p.isDeleted ? { ...p, isDeleted: false, deletedAt: undefined } : p),
+                    folders: state.folders.map(f => f.isDeleted ? { ...f, isDeleted: false, deletedAt: undefined } : f),
+                }));
+            },
+            
+            requestPermanentDeleteAll: () => {
+                 useUIStore.getState().showConfirmModal({
+                     title: "Dọn sạch Thùng rác?",
+                     text: "Tất cả các mục trong thùng rác sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.",
+                     confirmText: "Xóa tất cả",
+                     onConfirm: () => get().permanentDeleteAll(),
+                     // FIX: Removed `onCancel` as it's handled automatically by the UI store.
+                     isDestructive: true,
+                 });
+            },
+            
+            permanentDeleteAll: () => {
+                set(state => ({
+                    studyPacks: state.studyPacks.filter(p => !p.isDeleted),
+                    folders: state.folders.filter(f => !f.isDeleted),
+                }));
+            },
+            
+            autoCleanupTrash: () => {
+                const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+                set(state => ({
+                    studyPacks: state.studyPacks.filter(p => !p.isDeleted || (p.deletedAt && p.deletedAt > thirtyDaysAgo)),
+                    folders: state.folders.filter(f => !f.isDeleted || (f.deletedAt && f.deletedAt > thirtyDaysAgo)),
+                }));
+            },
+
+            // --- Shop & Power-ups ---
             buyPowerUp: (powerUpId) => {
                 const powerUpData = POWER_UPS_DATA[powerUpId];
                 if (!powerUpData) return;
+
                 const state = get();
                 if (state.stethoCoins >= powerUpData.price) {
                     set(s => ({
@@ -992,105 +853,145 @@ export const useUserStore = create<UserState & UserActions>()(
                         inventory: {
                             ...s.inventory,
                             [powerUpId]: (s.inventory[powerUpId] || 0) + 1,
-                        },
+                        }
                     }));
-                    useUIStore.getState().showToast(`Đã mua ${powerUpData.name}!`);
+                    useUIStore.getState().showToast(`Đã mua: ${powerUpData.name}!`);
                 } else {
                     useUIStore.getState().showToast('Không đủ Stetho Coins!');
                 }
             },
             
             usePowerUp: (powerUpId) => {
-                const state = get();
-                const currentCount = state.inventory[powerUpId] || 0;
+                const currentCount = get().inventory[powerUpId] || 0;
                 if (currentCount > 0) {
                     set(s => ({
                         inventory: {
                             ...s.inventory,
                             [powerUpId]: currentCount - 1,
-                        },
+                        }
                     }));
-                }
-            },
-            
-            refreshQuests: () => {
-                const now = new Date();
-                const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
-                const day = now.getDay();
-                const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-                const startOfWeek = new Date(now.setDate(diff));
-                const startOfWeekStr = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate()).toISOString().split('T')[0];
-            
-                const lastDailyRefresh = get().lastQuestRefresh.daily;
-                const lastWeeklyRefresh = get().lastQuestRefresh.weekly;
-                
-                let questsRefreshed = false;
-                let newQuests: Quest[] = [...get().activeQuests];
-            
-                if (lastDailyRefresh !== todayStr) {
-                    questsRefreshed = true;
-                    newQuests = newQuests.filter(q => q.type !== QuestType.DAILY);
-                    const dailyTemplates = [...QUEST_TEMPLATES.DAILY];
-                    const selectedDaily: Quest[] = [];
-                    for (let i = 0; i < 3 && dailyTemplates.length > 0; i++) {
-                        const randomIndex = Math.floor(Math.random() * dailyTemplates.length);
-                        const template = dailyTemplates.splice(randomIndex, 1)[0];
-                        selectedDaily.push({ ...template, type: QuestType.DAILY, progress: 0, claimed: false });
-                    }
-                    newQuests.push(...selectedDaily);
-                }
-            
-                if (lastWeeklyRefresh !== startOfWeekStr) {
-                    questsRefreshed = true;
-                    newQuests = newQuests.filter(q => q.type !== QuestType.WEEKLY);
-                    const weeklyTemplates = [...QUEST_TEMPLATES.WEEKLY];
-                    const selectedWeekly: Quest[] = [];
-                    for (let i = 0; i < 3 && weeklyTemplates.length > 0; i++) {
-                        const randomIndex = Math.floor(Math.random() * weeklyTemplates.length);
-                        const template = weeklyTemplates.splice(randomIndex, 1)[0];
-                        selectedWeekly.push({ ...template, type: QuestType.WEEKLY, progress: 0, claimed: false });
-                    }
-                    newQuests.push(...selectedWeekly);
-                }
-                
-                if(questsRefreshed) {
-                    set({ 
-                        activeQuests: newQuests,
-                        lastQuestRefresh: { daily: todayStr, weekly: startOfWeekStr }
-                    });
+                } else {
+                    console.warn(`Attempted to use power-up ${powerUpId} with 0 count.`);
                 }
             },
 
-            claimQuestReward: (questId) => {
-                const quest = get().activeQuests.find(q => q.id === questId);
-                if (quest && !quest.claimed && quest.progress >= quest.target) {
-                    set(state => ({
-                        activeQuests: state.activeQuests.map(q =>
-                            q.id === questId ? { ...q, claimed: true } : q
-                        ),
-                    }));
-                    get().addXp(quest.xpReward, `Hoàn thành nhiệm vụ! +${quest.xpReward} XP`);
-                    get().addStethoCoins(quest.coinReward, `Hoàn thành nhiệm vụ! +${quest.coinReward} Stetho Coins`);
+            activateXpBoost: (packId) => {
+                const state = get();
+                const xpBoosterCount = state.inventory[PowerUpId.XP_BOOSTER] || 0;
+                const isAlreadyBoosted = state.boostedPackIds?.includes(packId);
+
+                if (isAlreadyBoosted) {
+                     useUIStore.getState().showToast('Gói học tập này đã được tăng cường XP.');
+                     return;
                 }
+
+                if (xpBoosterCount > 0) {
+                    get().usePowerUp(PowerUpId.XP_BOOSTER);
+                    set(s => ({
+                        boostedPackIds: [...(s.boostedPackIds || []), packId]
+                    }));
+                    useUIStore.getState().showToast('🚀 XP Boost đã được kích hoạt cho gói này!');
+                } else {
+                    useUIStore.getState().showToast('Bạn không có Thuốc Tăng Lực XP.');
+                }
+            },
+
+            activateCoinBoost: () => {
+                const state = get();
+                const coinBoosterCount = state.inventory[PowerUpId.COIN_BOOSTER] || 0;
+
+                if (state.coinBoostExpiry && new Date(state.coinBoostExpiry) > new Date()) {
+                    useUIStore.getState().showToast('Coin Boost đã được kích hoạt rồi.');
+                    return;
+                }
+
+                if (coinBoosterCount > 0) {
+                    get().usePowerUp(PowerUpId.COIN_BOOSTER);
+                    const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+                    set({ coinBoostExpiry: expiry });
+                    useUIStore.getState().showToast('💰 Coin Boost 24 giờ đã được kích hoạt!');
+                } else {
+                    useUIStore.getState().showToast('Bạn không có Thuốc Nhân Đôi Coin.');
+                }
+            },
+            
+            // --- Quests ---
+            refreshQuests: () => {
+                const now = new Date();
+                const todayStr = now.toISOString().split('T')[0];
+                const lastDailyRefresh = get().lastQuestRefresh.daily;
+                const lastWeeklyRefresh = get().lastQuestRefresh.weekly;
+                let newQuests: Quest[] = [...get().activeQuests.filter(q => !q.claimed)];
+                let refreshed = false;
+
+                if (todayStr !== lastDailyRefresh) {
+                    refreshed = true;
+                    newQuests = newQuests.filter(q => q.type !== QuestType.DAILY);
+                    const dailyTemplates = [...QUEST_TEMPLATES.DAILY].sort(() => 0.5 - Math.random());
+                    const dailySelection = dailyTemplates.slice(0, 3).map(q => ({...q, progress: 0, claimed: false}));
+                    newQuests.push(...dailySelection);
+                    set(s => ({ lastQuestRefresh: {...s.lastQuestRefresh, daily: todayStr } }));
+                }
+
+                const todayDay = now.getDay(); // Sunday is 0, Monday is 1
+                const lastWeeklyRefreshDate = new Date(lastWeeklyRefresh);
+                const daysSinceLastWeekly = (now.getTime() - lastWeeklyRefreshDate.getTime()) / (1000 * 3600 * 24);
+
+                if (todayDay === 1 && daysSinceLastWeekly >= 1) { // It's Monday and we haven't refreshed today
+                    refreshed = true;
+                    newQuests = newQuests.filter(q => q.type !== QuestType.WEEKLY);
+                    const weeklyTemplates = [...QUEST_TEMPLATES.WEEKLY].sort(() => 0.5 - Math.random());
+                    const weeklySelection = weeklyTemplates.slice(0, 3).map(q => ({...q, progress: 0, claimed: false}));
+                    newQuests.push(...weeklySelection);
+                    set(s => ({ lastQuestRefresh: {...s.lastQuestRefresh, weekly: todayStr } }));
+                }
+                
+                if (refreshed) set({ activeQuests: newQuests });
+            },
+
+            claimQuestReward: (questId) => {
+                set(state => {
+                    const quest = state.activeQuests.find(q => q.id === questId);
+                    if (!quest || quest.claimed || quest.progress < quest.target) return state;
+
+                    get().addXp(quest.xpReward);
+                    get().addStethoCoins(quest.coinReward);
+
+                    return {
+                        activeQuests: state.activeQuests.map(q => q.id === questId ? {...q, claimed: true} : q)
+                    };
+                });
             },
 
             updateQuestProgress: (category, value) => {
                 set(state => {
                     const updatedQuests = state.activeQuests.map(quest => {
                         if (quest.category === category && !quest.claimed) {
-                            if (category === QuestCategory.MAINTAIN_STREAK) {
-                                return { ...quest, progress: value };
+                            let newProgress = quest.progress;
+                             if (category === QuestCategory.MAINTAIN_STREAK) {
+                                newProgress = Math.max(quest.progress, value); // For streak, take the max value
+                            } else {
+                                newProgress += value; // For others, accumulate
                             }
-                            return { ...quest, progress: quest.progress + value };
+                            return { ...quest, progress: newProgress };
                         }
                         return quest;
                     });
                     return { activeQuests: updatedQuests };
                 });
-            },
+            }
+
         }),
         {
             name: LOCAL_STORAGE_KEY,
+            onRehydrateStorage: () => (state) => {
+                if (state) {
+                    state.isLoggedIn = state.name !== DEFAULT_USER_NAME;
+                    state.isGenerating = false;
+                    state.tutorState = 'closed';
+                    state.tutorMessages = [];
+                }
+            }
         }
     )
 );

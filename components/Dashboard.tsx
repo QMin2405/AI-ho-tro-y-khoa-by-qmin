@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { StudyPack, Folder } from '../types';
+import { StudyPack, Folder, PowerUpId } from '../types';
 import { useUserStore } from '../store/useUserStore';
 import { getBreadcrumbs } from '../utils/helpers';
 import { 
-    PlusIcon, BookOpenIcon, FolderIcon, FolderPlusIcon, TrashIcon, PencilIcon, ICON_MAP, XIcon 
+    PlusIcon, BookOpenIcon, FolderIcon, FolderPlusIcon, TrashIcon, PencilIcon, ICON_MAP, XIcon, BoltIcon 
 } from './icons';
 import { PACK_COLORS } from '../constants';
 
@@ -55,12 +55,16 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
     const updateFolder = useUserStore(state => state.updateFolder);
     const updateStudyPack = useUserStore(state => state.updateStudyPack);
     const requestSoftDelete = useUserStore(state => state.requestSoftDelete);
+    const activateXpBoost = useUserStore(state => state.activateXpBoost);
     
     // Select all folders for breadcrumb calculation and finding current folder info.
     const allFolders = useUserStore(state => state.folders);
 
     // Select all study packs for editing logic (to find the original pack).
     const allStudyPacks = useUserStore(state => state.studyPacks);
+
+    const xpBoosterCount = useUserStore(state => state.inventory[PowerUpId.XP_BOOSTER] || 0);
+    const boostedPackIds = useUserStore(state => state.boostedPackIds || []);
 
     // Derive visible packs and folders from the full lists to avoid the (selector, shallow) pattern.
     const visiblePacks = useMemo(
@@ -199,6 +203,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
         const packColor = PACK_COLORS.find(c => c.key === currentColor) || PACK_COLORS[0];
         const PackIcon = ICON_MAP[currentIconKey || ''];
         const isSelected = selectedPackIds.includes(pack.id);
+        const isBoostActiveOnThisPack = boostedPackIds.includes(pack.id);
         
         const handlePackClick = (e: React.MouseEvent) => {
             e.stopPropagation();
@@ -218,7 +223,21 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
                 onClick={handlePackClick} 
                 className={`cursor-pointer bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden group transition-all relative ${!isEditing ? 'hover:-translate-y-1' : ''} ${isSelected ? 'ring-2 ring-brand-primary ring-offset-2 dark:ring-offset-gray-900' : ''}`}
             >
+                {isBoostActiveOnThisPack && (
+                    <div className="absolute top-2 left-2 p-1.5 bg-yellow-400/80 rounded-full z-10 animate-pulse" title="XP Boost đang hoạt động!">
+                        <BoltIcon className="w-4 h-4 text-white" />
+                    </div>
+                )}
                 <div className="absolute top-2 right-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    {xpBoosterCount > 0 && !isBoostActiveOnThisPack && (
+                         <button
+                            onClick={(e) => { e.stopPropagation(); activateXpBoost(pack.id); }}
+                            aria-label="Áp dụng XP Booster"
+                            className="p-1.5 rounded-full text-yellow-600 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm"
+                        >
+                            <BoltIcon className="w-4 h-4" />
+                        </button>
+                    )}
                     <button
                         onClick={(e) => { 
                             e.stopPropagation(); 
@@ -226,7 +245,7 @@ export const Dashboard = ({ onSelectPack, onCreateNew, onOpenTrash, currentFolde
                             setEditingPackState({ title: pack.title, color: pack.color || 'slate', icon: pack.icon || '' });
                         }}
                         aria-label="Chỉnh sửa gói học tập"
-                        className="p-1.5 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm"
+                        className="p-1.5 ml-1 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm"
                     >
                         <PencilIcon className="w-4 h-4" />
                     </button>

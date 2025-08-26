@@ -167,21 +167,48 @@ export const POWER_UPS_DATA: Record<PowerUpId, Omit<PowerUp, 'id'>> = {
         price: 150,
         icon: React.createElement(ScaleIcon, { className: 'w-8 h-8' }),
     },
+    [PowerUpId.SECOND_OPINION]: {
+        name: 'Ý Kiến Thứ Hai',
+        description: 'Loại bỏ một phương án sai trong một câu hỏi trắc nghiệm.',
+        price: 75,
+        icon: React.createElement(UsersIcon, { className: 'w-8 h-8' }),
+    },
+    [PowerUpId.XP_BOOSTER]: {
+        name: 'Thuốc Tăng Lực XP',
+        description: 'Nhân đôi tất cả XP kiếm được từ một Gói học tập (dùng một lần).',
+        price: 250,
+        icon: React.createElement(BoltIcon, { className: 'w-8 h-8' }),
+    },
+    [PowerUpId.STREAK_SHIELD]: {
+        name: 'Khiên Bảo Vệ Chuỗi',
+        description: 'Bảo vệ chuỗi học tập của bạn nếu bạn bỏ lỡ một ngày.',
+        price: 500,
+        icon: React.createElement(ShieldCheckIcon, { className: 'w-8 h-8' }),
+    },
+    [PowerUpId.COIN_BOOSTER]: {
+        name: 'Thuốc Nhân Đôi Coin',
+        description: 'Nhân đôi tất cả Stetho Coins bạn kiếm được trong 24 giờ.',
+        price: 400,
+        icon: React.createElement(SparklesIcon, { className: 'w-8 h-8' }),
+    },
 };
+
 
 export const QUEST_TEMPLATES = {
     [QuestType.DAILY]: [
-        { id: 'd_answer_15', category: QuestCategory.ANSWER_CORRECTLY, description: 'Trả lời đúng 15 câu hỏi', target: 15, xpReward: 75, coinReward: 50 },
-        { id: 'd_answer_30', category: QuestCategory.ANSWER_CORRECTLY, description: 'Trả lời đúng 30 câu hỏi', target: 30, xpReward: 150, coinReward: 100 },
-        { id: 'd_earn_xp_500', category: QuestCategory.EARN_XP, description: 'Kiếm được 500 XP', target: 500, xpReward: 100, coinReward: 75 },
-        { id: 'd_create_pack_1', category: QuestCategory.CREATE_PACK, description: 'Tạo 1 Gói học tập mới', target: 1, xpReward: 200, coinReward: 100 },
-        { id: 'd_complete_quiz_1', category: QuestCategory.COMPLETE_QUIZ, description: 'Hoàn thành 1 bài trắc nghiệm', target: 1, xpReward: 100, coinReward: 50 },
+        // FIX: Added missing `type` property to match the `Quest` interface.
+        { id: 'd_answer_15', type: QuestType.DAILY, category: QuestCategory.ANSWER_CORRECTLY, description: 'Trả lời đúng 15 câu hỏi', target: 15, xpReward: 75, coinReward: 50 },
+        { id: 'd_answer_30', type: QuestType.DAILY, category: QuestCategory.ANSWER_CORRECTLY, description: 'Trả lời đúng 30 câu hỏi', target: 30, xpReward: 150, coinReward: 100 },
+        { id: 'd_earn_xp_500', type: QuestType.DAILY, category: QuestCategory.EARN_XP, description: 'Kiếm được 500 XP', target: 500, xpReward: 100, coinReward: 75 },
+        { id: 'd_create_pack_1', type: QuestType.DAILY, category: QuestCategory.CREATE_PACK, description: 'Tạo 1 Gói học tập mới', target: 1, xpReward: 200, coinReward: 100 },
+        { id: 'd_complete_quiz_1', type: QuestType.DAILY, category: QuestCategory.COMPLETE_QUIZ, description: 'Hoàn thành 1 bài trắc nghiệm', target: 1, xpReward: 100, coinReward: 50 },
     ],
     [QuestType.WEEKLY]: [
-        { id: 'w_answer_100', category: QuestCategory.ANSWER_CORRECTLY, description: 'Trả lời đúng 100 câu hỏi', target: 100, xpReward: 500, coinReward: 300 },
-        { id: 'w_create_pack_3', category: QuestCategory.CREATE_PACK, description: 'Tạo 3 Gói học tập mới', target: 3, xpReward: 600, coinReward: 400 },
-        { id: 'w_earn_xp_2500', category: QuestCategory.EARN_XP, description: 'Kiếm được 2500 XP', target: 2500, xpReward: 400, coinReward: 250 },
-        { id: 'w_maintain_streak_7', category: QuestCategory.MAINTAIN_STREAK, description: 'Duy trì chuỗi học 7 ngày', target: 7, xpReward: 750, coinReward: 500 },
-        { id: 'w_complete_quiz_5', category: QuestCategory.COMPLETE_QUIZ, description: 'Hoàn thành 5 bài trắc nghiệm', target: 5, xpReward: 400, coinReward: 200 },
+        // FIX: Added missing `type` property to match the `Quest` interface.
+        { id: 'w_answer_100', type: QuestType.WEEKLY, category: QuestCategory.ANSWER_CORRECTLY, description: 'Trả lời đúng 100 câu hỏi', target: 100, xpReward: 500, coinReward: 300 },
+        { id: 'w_create_pack_3', type: QuestType.WEEKLY, category: QuestCategory.CREATE_PACK, description: 'Tạo 3 Gói học tập mới', target: 3, xpReward: 600, coinReward: 400 },
+        { id: 'w_earn_xp_2500', type: QuestType.WEEKLY, category: QuestCategory.EARN_XP, description: 'Kiếm được 2500 XP', target: 2500, xpReward: 400, coinReward: 250 },
+        { id: 'w_maintain_streak_7', type: QuestType.WEEKLY, category: QuestCategory.MAINTAIN_STREAK, description: 'Duy trì chuỗi học 7 ngày', target: 7, xpReward: 750, coinReward: 500 },
+        { id: 'w_complete_quiz_5', type: QuestType.WEEKLY, category: QuestCategory.COMPLETE_QUIZ, description: 'Hoàn thành 5 bài trắc nghiệm', target: 5, xpReward: 400, coinReward: 200 },
     ]
 };
