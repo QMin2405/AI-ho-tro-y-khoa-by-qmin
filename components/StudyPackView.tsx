@@ -141,7 +141,7 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
     }, [session.activeQuestionIds]);
     
     const handleGenerateAndContinue = async () => {
-        await generateMoreQuestions(pack.id, false);
+        await generateMoreQuestions(pack.id, false, { startNewSessionWithNewQuestions: true });
     };
     
     const questions = useMemo(() => {
@@ -483,7 +483,7 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
     }, [session.activeQuestionIds]);
     
     const handleGenerateAndContinue = async () => {
-        await generateMoreQuestions(pack.id, true);
+        await generateMoreQuestions(pack.id, true, { startNewSessionWithNewQuestions: true });
     };
     
     const activeQuestions = useMemo(() => {
