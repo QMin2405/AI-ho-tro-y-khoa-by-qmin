@@ -43,83 +43,76 @@
               },
               'heartbeat': {
                 '0%': { transform: 'scale(1)' },
-                '50%': { transform: 'scale(1.2)' },
+                '50%': { transform: 'scale(1.1)' },
                 '100%': { transform: 'scale(1)' },
+              },
+              'bounce': {
+                '0%, 100%': { transform: 'translateY(-5%)', animationTimingFunction: 'cubic-bezier(0.8,0,1,1)' },
+                '50%': { transform: 'none', animationTimingFunction: 'cubic-bezier(0,0,0.2,1)' },
               }
             },
             animation: {
-              'shine': 'shine 1s ease-in-out',
+              'shine': 'shine 1.5s linear infinite',
               'fade-in': 'fade-in 0.5s ease-out forwards',
-              'heartbeat': 'heartbeat 1.5s ease-in-out infinite',
+              'heartbeat': 'heartbeat 1s ease-in-out infinite',
             }
-          }
-        }
+          },
+        },
       }
     </script>
     <style>
-      :root {
-        --color-background: #f1f5f9; /* slate-100 */
-        --color-foreground: #ffffff; /* white */
-        --color-text-primary: #1e293b; /* slate-800 */
-        --color-text-secondary: #64748b; /* slate-500 */
-        --color-border: #e2e8f0; /* slate-200 */
-        --color-brand-primary: #1d4ed8;
-        --color-brand-secondary: #3b82f6;
+      /* Base styles for smooth color transitions (dark mode) and layout */
+      *, *::before, *::after {
+        transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
       }
-      .dark:root {
-        --color-background: #0f172a; /* gray-900 */
-        --color-foreground: #1e293b; /* gray-800 */
-        --color-text-primary: #e2e8f0; /* slate-200 */
-        --color-text-secondary: #94a3b8; /* slate-400 */
-        --color-border: #334155; /* gray-700 */
-        --color-brand-primary: #3b82f6;
-        --color-brand-secondary: #60a5fa;
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
-
-      /* Add smooth transitions for a better user experience */
-      *,
-      *::before,
-      *::after {
-        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 300ms;
+      .prose {
+        --tw-prose-bullets: var(--color-text-secondary);
       }
-
-      /* Add faster transitions and press feedback for interactive elements */
-      button, a[role="button"] {
-        /* Add transform to the list of transitioned properties */
-        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform;
-        transition-duration: 150ms; /* Faster for interactions */
+      .dark .prose {
+         --tw-prose-invert-bullets: var(--color-text-secondary);
       }
-
-      /* Add a subtle lift effect on hover for non-disabled buttons */
-      button:not(:disabled):hover,
-      a[role="button"]:not(:disabled):hover {
+      
+      /* Enhanced Button Styles */
+      button, [role="button"] {
+        /* Add a base box-shadow for a subtle 3D effect and smooth transitions for all properties */
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+                    box-shadow 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+                    filter 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+      
+      button:not(:disabled):hover, [role="button"]:not(:disabled):hover {
+        /* On hover: lift the button up, add a larger shadow, and slightly brighten it */
         transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        filter: brightness(1.1);
       }
-
-      /* On active/click, combine the lift with a shrink effect for feedback */
-      button:not(:disabled):active,
-      a[role="button"]:not(:disabled):active {
-        transform: translateY(-1px) scale(0.97);
+      
+      button:not(:disabled):active, [role="button"]:not(:disabled):active {
+        /* On click: press the button down, shrink it slightly, and darken it for feedback */
+        transform: translateY(0px) scale(0.98);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        filter: brightness(0.9);
       }
     </style>
   <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.1.1",
-    "react-dom/client": "https://esm.sh/react-dom@^19.1.1/client",
-    "@google/genai": "https://esm.sh/@google/genai@^1.15.0",
-    "zustand": "https://esm.sh/zustand@^4.5.4",
-    "zustand/middleware": "https://esm.sh/zustand@^4.5.4/middleware",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.15.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
-    "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/"
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "zustand/": "https://aistudiocdn.com/zustand@^5.0.8/",
+    "zustand": "https://aistudiocdn.com/zustand@^5.0.8"
   }
 }
 </script>
 </head>
-  <body class="bg-background text-text-primary">
+  <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
