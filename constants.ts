@@ -533,5 +533,143 @@ export const THEMES_DATA: Record<ThemeId, Omit<Theme, 'id'>> = {
             '--color-brand-primary': '#f0c9a8',
             '--color-brand-secondary': '#e09a6c',
         }
+    },
+    [ThemeId.MONOCHROME_MIST]: {
+        name: 'Sương mù Đơn sắc',
+        price: 4200,
+        previewColors: ['#f4f4f6', '#1a1a1d', '#c7c4d0', '#5a5a60'],
+        lightColors: {
+            '--color-background': '#f4f4f6',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#2a2a2e',
+            '--color-text-secondary': '#5a5a60',
+            '--color-border': '#e4e4e6',
+            '--color-brand-primary': '#5a5a60',
+            '--color-brand-secondary': '#7a7a80',
+        },
+        darkColors: {
+            '--color-background': '#1a1a1d',
+            '--color-foreground': '#303033',
+            '--color-text-primary': '#f0f0f5',
+            '--color-text-secondary': '#a0a0b0',
+            '--color-border': '#4a4a4f',
+            '--color-brand-primary': '#c7c4d0',
+            '--color-brand-secondary': '#b0adc0',
+        }
+    },
+    [ThemeId.EMERALD_AURORA]: {
+        name: 'Cực quang Lục bảo',
+        price: 4200,
+        previewColors: ['#f0faff', '#0a1c22', '#1e3a5f', '#6affb7'],
+        lightColors: {
+            '--color-background': '#f0faff',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#1e3a5f',
+            '--color-text-secondary': '#4a6b8c',
+            '--color-border': '#dbe6f0',
+            '--color-brand-primary': '#00a859',
+            '--color-brand-secondary': '#00c875',
+        },
+        darkColors: {
+            '--color-background': '#0a1c22',
+            '--color-foreground': '#1e3a5f',
+            '--color-text-primary': '#e0f5ff',
+            '--color-text-secondary': '#a0b8d0',
+            '--color-border': '#2a4c7a',
+            '--color-brand-primary': '#6affb7',
+            '--color-brand-secondary': '#40e090',
+        }
+    },
+    [ThemeId.LOFI_NIGHT]: {
+        name: 'Đêm Lo-fi',
+        price: 4500,
+        previewColors: ['#f5f4fa', '#242247', '#1c1c1c', '#a1a9e3'],
+        lightColors: {
+            '--color-background': '#f5f4fa',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#3a3860',
+            '--color-text-secondary': '#605d8f',
+            '--color-border': '#e0dfe8',
+            '--color-brand-primary': '#6a75c4',
+            '--color-brand-secondary': '#8892d4',
+        },
+        darkColors: {
+            '--color-background': '#242247',
+            '--color-foreground': '#1c1c1c',
+            '--color-text-primary': '#e8e7f5',
+            '--color-text-secondary': '#b0afc5',
+            '--color-border': '#3a3860',
+            '--color-brand-primary': '#a1a9e3',
+            '--color-brand-secondary': '#b8c0f0',
+        }
+    },
+    [ThemeId.PIXEL_FOREST]: {
+        name: 'Khu rừng Pixel',
+        price: 4500,
+        previewColors: ['#f2faf0', '#101c1a', '#212121', '#87d86f'],
+        lightColors: {
+            '--color-background': '#f2faf0',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#2a4a28',
+            '--color-text-secondary': '#587a56',
+            '--color-border': '#d8e8d6',
+            '--color-brand-primary': '#56ab2f',
+            '--color-brand-secondary': '#6fbf56',
+        },
+        darkColors: {
+            '--color-background': '#101c1a',
+            '--color-foreground': '#212121',
+            '--color-text-primary': '#e5f5e3',
+            '--color-text-secondary': '#a5c5a3',
+            '--color-border': '#3a4a38',
+            '--color-brand-primary': '#87d86f',
+            '--color-brand-secondary': '#6fbf56',
+        }
+    },
+    [ThemeId.LUCKY_CHARM]: {
+        name: 'Bùa may mắn',
+        price: 4800,
+        previewColors: ['#fdf7fa', '#311f2a', '#583952', '#d2a7c4'],
+        lightColors: {
+            '--color-background': '#fdf7fa',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#583952',
+            '--color-text-secondary': '#80607a',
+            '--color-border': '#f0e0ea',
+            '--color-brand-primary': '#a86e94',
+            '--color-brand-secondary': '#c08eac',
+        },
+        darkColors: {
+            '--color-background': '#311f2a',
+            '--color-foreground': '#583952',
+            '--color-text-primary': '#faeaf5',
+            '--color-text-secondary': '#c8b0c0',
+            '--color-border': '#70506a',
+            '--color-brand-primary': '#d2a7c4',
+            '--color-brand-secondary': '#e0b8d5',
+        }
+    },
+    [ThemeId.GOLDEN_SUNSET]: {
+        name: 'Hoàng hôn Vàng',
+        price: 5000,
+        previewColors: ['#f8f5f0', '#1b293b', '#4a607b', '#f9b546'],
+        lightColors: {
+            '--color-background': '#f8f5f0',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#4a607b',
+            '--color-text-secondary': '#7088a3',
+            '--color-border': '#e8e0d5',
+            '--color-brand-primary': '#e09a2d',
+            '--color-brand-secondary': '#f9b546',
+        },
+        darkColors: {
+            '--color-background': '#1b293b',
+            '--color-foreground': '#4a607b',
+            '--color-text-primary': '#f5f0e8',
+            '--color-text-secondary': '#b8c0ca',
+            '--color-border': '#607894',
+            '--color-brand-primary': '#f9b546',
+            '--color-brand-secondary': '#ffc870',
+        }
     }
 };
