@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { markdownToHtml } from '../utils/markdown';
 import { ChatMessage } from '../types';
@@ -36,22 +36,27 @@ export const FloatingTutorPopup = () => {
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const chatContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [tutorMessages, isTutorLoading]);
-    
-    const handleInputResize = useCallback(() => {
-        const textarea = textareaRef.current;
-        if (textarea) {
-            textarea.style.height = 'auto';
-            textarea.style.height = `${textarea.scrollHeight}px`;
-        }
-    }, []);
 
+    // Effect for auto-resizing the textarea
     useEffect(() => {
-        handleInputResize();
-    }, [input, handleInputResize]);
+        const textarea = textareaRef.current;
+        const chatContainer = chatContainerRef.current;
+        if (textarea && chatContainer) {
+            textarea.style.height = 'auto'; // Reset height to recalculate
+            const scrollHeight = textarea.scrollHeight;
+            const parentHeight = chatContainer.clientHeight;
+            // Set max height to 1/3 of the container height
+            const maxHeight = parentHeight / 3; 
+
+            // Apply the new height, capped by the max height
+            textarea.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
+        }
+    }, [input, tutorState]); // Rerun on input change or when the popup size changes
 
     const handleSend = () => {
         if (input.trim()) {
@@ -74,11 +79,9 @@ export const FloatingTutorPopup = () => {
         ? 'w-full max-w-2xl h-[85vh]' 
         : 'w-full max-w-sm h-[60vh]'
     }`;
-    
-    const textareaMaxHeight = isMaximized ? '42.5vh' : '30vh';
 
     return (
-        <div className={popupClasses}>
+        <div className={popupClasses} ref={chatContainerRef}>
             <header className="p-4 border-b border-border flex justify-between items-center">
                 <div className="flex items-center gap-2">
                     <ChatAlt2Icon className="w-6 h-6 text-brand-primary"/>
@@ -106,7 +109,7 @@ export const FloatingTutorPopup = () => {
                                     <span className="w-2 h-2 bg-text-secondary rounded-full animate-bounce [animation-delay:-0.3s]"></span>
                                     <span className="w-2 h-2 bg-text-secondary rounded-full animate-bounce [animation-delay:-0.15s]"></span>
                                     <span className="w-2 h-2 bg-text-secondary rounded-full animate-bounce"></span>
-                                </div>
+                                 </div>
                              </div>
                          </div>
                      )}
@@ -114,11 +117,12 @@ export const FloatingTutorPopup = () => {
                 </div>
             </div>
             {tutorContext && (
-                <div className="p-2 border-t border-border bg-background/50 text-xs text-text-secondary">
-                    <div className="flex justify-between items-center">
-                        <p className="truncate"><strong>Bối cảnh:</strong> {tutorContext.replace(/\s+/g, ' ')}</p>
-                        <button onClick={clearTutorContext} className="text-blue-500 hover:underline flex-shrink-0 ml-2">Xóa</button>
+                <div className="p-4 border-t border-border bg-background">
+                    <p className="text-xs font-semibold text-text-secondary mb-1">Hỏi về ngữ cảnh:</p>
+                    <div className="text-xs text-text-secondary p-2 bg-foreground rounded-md max-h-20 overflow-y-auto whitespace-pre-wrap">
+                        {tutorContext}
                     </div>
+                     <button onClick={clearTutorContext} className="text-xs text-brand-primary hover:underline mt-1">Xóa ngữ cảnh</button>
                 </div>
             )}
             <div className="p-4 border-t border-border">
@@ -134,22 +138,15 @@ export const FloatingTutorPopup = () => {
                             }
                         }}
                         placeholder="Hỏi bất cứ điều gì..."
-                        className="w-full p-2 border border-border rounded-lg bg-background focus:ring-2 focus:ring-brand-primary focus:outline-none resize-none overflow-y-auto"
+                        className="flex-grow p-2 border border-border rounded-lg bg-background focus:ring-2 focus:ring-brand-primary focus:outline-none resize-none overflow-y-auto"
                         rows={1}
-                        disabled={isTutorLoading}
-                        style={{ maxHeight: textareaMaxHeight }}
                     />
-                    <button
-                        onClick={handleSend}
-                        className="p-2 bg-brand-primary text-white rounded-lg hover:opacity-90 disabled:bg-slate-400"
-                        disabled={!input.trim() || isTutorLoading}
-                        aria-label="Gửi tin nhắn"
-                    >
+                    <button onClick={handleSend} disabled={isTutorLoading || !input.trim()} className="p-3 bg-brand-primary text-white rounded-lg font-semibold hover:opacity-90 disabled:bg-slate-400 disabled:cursor-not-allowed h-full flex items-center">
                         Gửi
                     </button>
                 </div>
-                <p className="text-xs text-text-secondary text-right mt-1.5">
-                    Nhấn <kbd className="font-sans border rounded px-1.5 py-0.5 text-xs bg-background dark:border-gray-600">Ctrl</kbd> + <kbd className="font-sans border rounded px-1.5 py-0.5 text-xs bg-background dark:border-gray-600">Enter</kbd> để gửi.
+                <p className="text-xs text-text-secondary mt-1.5 ml-1">
+                    Nhấn <kbd className="font-sans border rounded px-1.5 py-0.5 text-xs bg-foreground dark:border-gray-600">Enter</kbd> để xuống dòng, <kbd className="font-sans border rounded px-1.5 py-0.5 text-xs bg-foreground dark:border-gray-600">Ctrl</kbd> + <kbd className="font-sans border rounded px-1.5 py-0.5 text-xs bg-foreground dark:border-gray-600">Enter</kbd> để gửi.
                 </p>
             </div>
         </div>
