@@ -487,5 +487,51 @@ export const THEMES_DATA: Record<ThemeId, Omit<Theme, 'id'>> = {
             '--color-brand-primary': '#bdc3c7',
             '--color-brand-secondary': '#7f8c8d',
         }
+    },
+    [ThemeId.PURPLE_DUSK]: {
+        name: 'Đêm Tím Huyền Bí',
+        price: 3800,
+        previewColors: ['#1f1933', '#3a3159', '#4ac7ff', '#c77cff'],
+        lightColors: {
+            '--color-background': '#f7f5ff',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#3a3159',
+            '--color-text-secondary': '#6c638f',
+            '--color-border': '#e5e0f7',
+            '--color-brand-primary': '#3a7dff',
+            '--color-brand-secondary': '#b366ff',
+        },
+        darkColors: {
+            '--color-background': '#130f24',
+            '--color-foreground': '#1f1933',
+            '--color-text-primary': '#e6e0ff',
+            '--color-text-secondary': '#a097c1',
+            '--color-border': '#3a3159',
+            '--color-brand-primary': '#4ac7ff',
+            '--color-brand-secondary': '#c77cff',
+        }
+    },
+    [ThemeId.WARM_CHOCOLATE]: {
+        name: 'Sôcôla Ấm Áp',
+        price: 3800,
+        previewColors: ['#4d3a33', '#6b564e', '#f0c9a8', '#e09a6c'],
+        lightColors: {
+            '--color-background': '#fdf8f5',
+            '--color-foreground': '#ffffff',
+            '--color-text-primary': '#4d3a33',
+            '--color-text-secondary': '#8a756c',
+            '--color-border': '#e8ddd7',
+            '--color-brand-primary': '#d9813e',
+            '--color-brand-secondary': '#e6a978',
+        },
+        darkColors: {
+            '--color-background': '#2b1d16',
+            '--color-foreground': '#4d3a33',
+            '--color-text-primary': '#f5e9e3',
+            '--color-text-secondary': '#bfa9a2',
+            '--color-border': '#6b564e',
+            '--color-brand-primary': '#f0c9a8',
+            '--color-brand-secondary': '#e09a6c',
+        }
     }
 };
