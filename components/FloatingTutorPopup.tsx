@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useUserStore } from '../store/useUserStore';
 import { markdownToHtml } from '../utils/markdown';
 import { ChatMessage } from '../types';
@@ -35,11 +35,24 @@ export const FloatingTutorPopup = () => {
 
     const [input, setInput] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [tutorMessages, isTutorLoading]);
     
+    const handleInputResize = useCallback(() => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = `${textarea.scrollHeight}px`;
+        }
+    }, []);
+
+    useEffect(() => {
+        handleInputResize();
+    }, [input, handleInputResize]);
+
     const handleSend = () => {
         if (input.trim()) {
             sendMessageToTutor(input.trim());
@@ -61,6 +74,8 @@ export const FloatingTutorPopup = () => {
         ? 'w-full max-w-2xl h-[85vh]' 
         : 'w-full max-w-sm h-[60vh]'
     }`;
+    
+    const textareaMaxHeight = isMaximized ? '42.5vh' : '30vh';
 
     return (
         <div className={popupClasses}>
@@ -80,7 +95,6 @@ export const FloatingTutorPopup = () => {
             <div className="flex-grow p-4 overflow-y-auto">
                 <div className="space-y-4">
                      {tutorMessages.map((msg, index) => (
-                        // FIX: Pass the 'msg' prop to the MemoizedChatMessage component.
                         <MemoizedChatMessage key={index} msg={msg} />
                      ))}
                      {isTutorLoading && (
@@ -108,8 +122,9 @@ export const FloatingTutorPopup = () => {
                 </div>
             )}
             <div className="p-4 border-t border-border">
-                <div className="flex items-start gap-2">
+                <div className="flex items-end gap-2">
                     <textarea
+                        ref={textareaRef}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => {
@@ -119,9 +134,10 @@ export const FloatingTutorPopup = () => {
                             }
                         }}
                         placeholder="Hỏi bất cứ điều gì..."
-                        className="w-full p-2 border border-border rounded-lg bg-background focus:ring-2 focus:ring-brand-primary focus:outline-none resize-none"
-                        rows={2}
+                        className="w-full p-2 border border-border rounded-lg bg-background focus:ring-2 focus:ring-brand-primary focus:outline-none resize-none overflow-y-auto"
+                        rows={1}
                         disabled={isTutorLoading}
+                        style={{ maxHeight: textareaMaxHeight }}
                     />
                     <button
                         onClick={handleSend}
