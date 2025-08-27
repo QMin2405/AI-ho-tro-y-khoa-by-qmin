@@ -108,20 +108,33 @@ export const FloatingTutorPopup = () => {
                 </div>
             )}
             <div className="p-4 border-t border-border">
-                <div className="flex items-center gap-2">
-                    <input
-                        type="text"
+                <div className="flex items-start gap-2">
+                    <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => {if(e.key === 'Enter') handleSend()}}
+                        onKeyDown={(e) => {
+                            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSend();
+                            }
+                        }}
                         placeholder="Hỏi bất cứ điều gì..."
-                        className="w-full p-2 border border-border rounded-lg bg-background focus:ring-2 focus:ring-brand-primary focus:outline-none"
+                        className="w-full p-2 border border-border rounded-lg bg-background focus:ring-2 focus:ring-brand-primary focus:outline-none resize-none"
+                        rows={2}
                         disabled={isTutorLoading}
                     />
-                    <button onClick={handleSend} className="p-2 bg-brand-primary text-white rounded-lg hover:opacity-90 disabled:bg-slate-400" disabled={!input.trim() || isTutorLoading}>
+                    <button
+                        onClick={handleSend}
+                        className="p-2 bg-brand-primary text-white rounded-lg hover:opacity-90 disabled:bg-slate-400"
+                        disabled={!input.trim() || isTutorLoading}
+                        aria-label="Gửi tin nhắn"
+                    >
                         Gửi
                     </button>
                 </div>
+                <p className="text-xs text-text-secondary text-right mt-1.5">
+                    Nhấn <kbd className="font-sans border rounded px-1.5 py-0.5 text-xs bg-background dark:border-gray-600">Ctrl</kbd> + <kbd className="font-sans border rounded px-1.5 py-0.5 text-xs bg-background dark:border-gray-600">Enter</kbd> để gửi.
+                </p>
             </div>
         </div>
     );
