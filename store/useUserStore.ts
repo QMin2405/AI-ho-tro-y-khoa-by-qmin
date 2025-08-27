@@ -1215,7 +1215,11 @@ export const useUserStore = create<UserState & UserActions>()(
                     const updatedQuests = state.activeQuests.map(quest => {
                         if (quest.category === category && !quest.claimed) {
                             questsUpdated = true;
-                            return { ...quest, progress: quest.progress + value };
+                            // FIX: For streak quests, set progress to the current streak value, don't add to it.
+                            const newProgress = category === Types.QuestCategory.MAINTAIN_STREAK
+                                ? value
+                                : quest.progress + value;
+                            return { ...quest, progress: newProgress };
                         }
                         return quest;
                     });
