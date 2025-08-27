@@ -60,7 +60,8 @@ const App = () => {
         const colors = isDarkMode ? theme.darkColors : theme.lightColors;
 
         Object.entries(colors).forEach(([key, value]) => {
-            document.documentElement.style.setProperty(key, value);
+            // FIX: Cast value to string, as TypeScript infers it as `unknown` from `Object.entries` on this specific object type.
+            document.documentElement.style.setProperty(key, value as string);
         });
 
         if (isDarkMode) {

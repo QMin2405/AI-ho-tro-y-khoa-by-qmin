@@ -2,6 +2,7 @@
 export const processInlineFormatting = (str: string) => {
     if (!str) return '';
     return str
+        .replace(/\n/g, '<br />')
         .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>')
         .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
         .replace(/__(.*?)__/g, '<span class="underline decoration-2 decoration-sky-500">$1</span>')
