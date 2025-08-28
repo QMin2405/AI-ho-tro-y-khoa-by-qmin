@@ -402,7 +402,7 @@ const QuizView = ({ pack }: { pack: StudyPack; }) => {
                 </div>
             )}
             {submittedAnswer && (
-                 <div className={`mt-6 p-4 rounded-lg ${submittedAnswer.isCorrect ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:red-900/30'}`}>
+                 <div className={`mt-6 p-4 rounded-lg ${submittedAnswer.isCorrect ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200' : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200'}`}>
                     <div className="flex items-start gap-2">
                          {submittedAnswer.isCorrect ? <CheckCircleIcon className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" /> : <XCircleIcon className="w-6 h-6 text-red-500 flex-shrink-0 mt-1" />}
                         <div>
@@ -712,7 +712,7 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
                 })}
             </div>
             {submittedAnswer && (
-                 <div className={`mt-6 p-4 rounded-lg ${submittedAnswer.isCorrect ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:red-900/30'}`}>
+                 <div className={`mt-6 p-4 rounded-lg ${submittedAnswer.isCorrect ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200' : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200'}`}>
                     <div className="flex items-start gap-2">
                          {submittedAnswer.isCorrect ? <CheckCircleIcon className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" /> : <XCircleIcon className="w-6 h-6 text-red-500 flex-shrink-0 mt-1" />}
                         <div>
@@ -722,7 +722,7 @@ const M2StaatexamQuizView = ({ pack }: { pack: StudyPack; }) => {
                                      <ChatAlt2Icon className="w-4 h-4" /> Hỏi Gia sư
                                 </button>
                             </div>
-                            <p className="text-sm mt-1 prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{__html: formattedExplanation}}></p>
+                            <p className="text-sm mt-1" dangerouslySetInnerHTML={{__html: formattedExplanation}}></p>
                         </div>
                     </div>
                  </div>
@@ -938,7 +938,7 @@ export const StudyPackView: React.FC<StudyPackViewProps> = ({ studyPackId, onBac
                         ))}
                     </nav>
                 </aside>
-                <main className="w-3/4 bg-foreground p-8 rounded-2xl shadow-lg">
+                <main key={mode} className="w-3/4 bg-foreground p-8 rounded-2xl shadow-lg animate-fade-in">
                    {renderContent()}
                 </main>
             </div>
