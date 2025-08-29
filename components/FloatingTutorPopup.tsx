@@ -40,7 +40,7 @@ export const FloatingTutorPopup = () => {
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [tutorMessages, isTutorLoading]);
+    }, [tutorMessages, isTutorLoading, tutorState]);
 
     // Effect for auto-resizing the textarea
     useEffect(() => {
