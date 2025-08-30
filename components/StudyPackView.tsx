@@ -914,7 +914,7 @@ export const StudyPackView: React.FC<StudyPackViewProps> = ({ studyPackId, onBac
         <div className="container mx-auto p-6 animate-fade-in">
             <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-brand-primary mb-4">
                 <ArrowLeftIcon className="w-4 h-4" />
-                <span>Trở về Trang chủ</span>
+                <span>Trở về</span>
             </button>
             <div className={`p-6 rounded-xl mb-8 ${packColor.bg} ${packColor.text}`}>
                 <div className="flex justify-between items-start">

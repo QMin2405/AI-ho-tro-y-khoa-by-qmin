@@ -120,11 +120,23 @@ const App = () => {
         setActiveView('studyPack');
     }, []);
 
-    const handleBackToHome = useCallback(() => {
-        setActiveView('dashboard');
-        setSelectedPackId(null);
-        setCurrentFolderId(null);
-    }, []);
+    const handleNavigateBack = useCallback(() => {
+        // If viewing a study pack, go back to the dashboard view,
+        // which will display the folder that pack is in.
+        if (activeView === 'studyPack') {
+            setActiveView('dashboard');
+            setSelectedPackId(null);
+            return;
+        }
+
+        // If viewing a folder, go to its parent folder.
+        if (activeView === 'dashboard' && currentFolderId) {
+            const allFolders = useUserStore.getState().folders;
+            const currentFolder = allFolders.find(f => f.id === currentFolderId);
+            setCurrentFolderId(currentFolder?.parentId || null);
+            return;
+        }
+    }, [activeView, currentFolderId]);
 
     const isAtHome = activeView === 'dashboard' && currentFolderId === null;
 
@@ -136,7 +148,7 @@ const App = () => {
                 onProfileClick={() => setIsProfileModalOpen(true)}
                 onStreakClick={() => setIsStreakModalOpen(true)}
                 onXpBarClick={() => setIsXpModalOpen(true)}
-                onHomeClick={handleBackToHome}
+                onHomeClick={handleNavigateBack}
                 isAtHome={isAtHome}
                 onShopClick={() => setIsShopModalOpen(true)}
                 onQuestsClick={() => setIsQuestsModalOpen(true)}
@@ -156,7 +168,7 @@ const App = () => {
                     <StudyPackView
                         key={selectedPackId} // Add key to force re-mount on pack change
                         studyPackId={selectedPackId}
-                        onBack={handleBackToHome}
+                        onBack={handleNavigateBack}
                     />
                 )}
             </main>

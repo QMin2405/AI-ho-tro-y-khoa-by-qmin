@@ -75,7 +75,7 @@ export const AppHeader = ({
                     role={!isAtHome ? "button" : undefined}
                     tabIndex={!isAtHome ? 0 : undefined}
                     onKeyDown={!isAtHome ? (e) => { if (e.key === 'Enter' || e.key === ' ') onHomeClick() } : undefined}
-                    aria-label={!isAtHome ? "Về trang chủ" : undefined}
+                    aria-label={!isAtHome ? "Trở về" : undefined}
                 >
                     <div className="p-2 bg-brand-primary/10 rounded-lg">
                         <CpuChipIcon className="w-7 h-7 text-brand-primary"/>
